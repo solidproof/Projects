@@ -11,17 +11,15 @@ In an increasingly global economy, financial institutions are more vulnerable to
 ✅  Manual Security Testing (Manual Code Check, SWC-Registry)  
 
 
-📱 How you can contact
-
+📱 How you can contact 
 [hello@solidproof.io](mailto:hello@solidproof.io)  
 [Telegram direct contact](http://t.me/solidproof_io)  
 [Our Website](https://solidproof.io/)
 
 
-🔔 If you like, please follow our social channels.
-
-Twitter Official: https://twitter.com/SolidProof_io
-Twitter Insider: https://twitter.com/solidproof_news
-Telegram: https://t.me/solidproof
-Facebook: https://www.facebook.com/solidproof.io/
-LinkedIn: https://www.linkedin.com/showcase/solidproof/about/
+🔔 If you like, please follow our social channels.  
+Twitter Official: https://twitter.com/SolidProof_io  
+Twitter Insider: https://twitter.com/solidproof_news  
+Telegram: https://t.me/solidproof  
+Facebook: https://www.facebook.com/solidproof.io  
+LinkedIn: https://www.linkedin.com/showcase/solidproof/about  
