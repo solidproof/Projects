@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.0;
+pragma solidity 0.8.7;
 
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
@@ -32,7 +32,6 @@ contract RoadToGloryCandyV1 is
     using Counters for Counters.Counter;
     Counters.Counter private _tokenIds;
     mapping(uint256 => BarbarianMetadataLib.BarbarianMetadataStruct) public tokenDatas;
-    bool private override _initialized;
     bytes32 public constant DIRECTOR_ROLE = keccak256("DIRECTOR_ROLE");
     mapping (address => bool) public Whitelisted;
     address [] public Whitelist;
@@ -42,15 +41,18 @@ contract RoadToGloryCandyV1 is
     uint256 public max_mint_per_wallet;
     uint256 public bnb_price_of_mint;
 
+    uint256 public minWithdrawAmount;
+    event MinWithdrawAmountUpdated(uint256 oldAmount, uint256 newAmount);
 
     function initialize(address _owner) public initializer {
-        require(!_initialized, "Contract already initialized.");
-        _initialized = true;
-        __ERC721_init("Road to Glory Barbarians", "RTGBAR");
+        __ERC721_init("Road to Glory Barbarians", "RTGB");
         __AccessControl_init();
         __Context_init();
         __Pausable_init();
         _setupRole(DEFAULT_ADMIN_ROLE, _owner);
+        _setupRole(DIRECTOR_ROLE, _owner);
+        bnb_price_of_mint = 2000;
+        minWithdrawAmount = 1000 * 1e14;
     }
 
     function _request_mint(address buyer, uint16 count) internal {
@@ -96,17 +98,16 @@ contract RoadToGloryCandyV1 is
     }
 
     function presale_draw(uint256 count) external payable nonReentrant {
-        require(bnb_price_of_mint >= 1000, "E1"); // Safeguard, 1000 * 1e14 = 0.1
-        require(count <= 10, "E2");
+        require(count <= 10, "The max number of draws for presale is 10.");
         uint cost = bnb_price_of_mint * count;
-        require(msg.value >= cost * 1e14, "FC");
+        require(msg.value >= cost * 1e14, "The value provided doesn't match the cost of minting.");
         bool canMint = false;
         uint current_number_of_mints = performed_mints[msg.sender];
         if ((Whitelisted[msg.sender] && current_number_of_mints + count <= max_mint_per_wallet) ||
             (current_number_of_mints + count <= max_mint_per_wallet && global_number_of_public_mints + count <= max_number_of_public_mints)) {
                 canMint = true;
         }
-        require(canMint, "Limit reached");
+        require(canMint, "The max mint has been reached for wallet or public.");
         performed_mints[msg.sender] += count;
         if (Whitelisted[msg.sender] != true) {
             global_number_of_public_mints += count;
@@ -114,16 +115,29 @@ contract RoadToGloryCandyV1 is
         _request_mint(msg.sender, uint16(count));
     }
 
-    function withdraw_test(address payable _to) external nonReentrant onlyRole(DIRECTOR_ROLE) {
-        require(address(this).balance >= 0.1 ether);
-        (bool success, ) = _to.call{value: 0.1 ether}("");
-        require(success, "WF");
+    function setMinWithdrawAmount(uint256 amount) external onlyRole(DIRECTOR_ROLE) {
+        require(amount > 0, "Min withdraw amount cannot be zero");
+        require(amount != minWithdrawAmount, "Amount is already set");
+
+        uint256 oldAmount = minWithdrawAmount;
+        minWithdrawAmount = amount;
+        emit MinWithdrawAmountUpdated(oldAmount, amount);        
     }
 
-    function withdraw_bnb(address payable _to) external nonReentrant onlyRole(DIRECTOR_ROLE) {
-        require(address(this).balance >= 5 ether);
-        (bool success, ) = _to.call{value: 5 ether}("");
-        require(success, "WFB");
+     function withdraw(address payable _to, uint256 amount) external nonReentrant onlyRole(DIRECTOR_ROLE) { 
+        uint256 balance = address(this).balance; // Contract address balance 
+ 
+        require(balance != 0, "Address balance is 0"); // Balance cannot be 0 
+        require(amount > 0, "Cannot withdraw zero"); // Withdraw amount cannot be 0 
+        require(amount >= minWithdrawAmount, "Withdraw amount to small"); // Amount must be higher than minWithdrawAmount 
+        require(_to != address(0), "Recipient cannot be zero address"); // No zero address allowed 
+ 
+        // Set amount to balance of contract if balance is not enough 
+        if(balance < amount) 
+            amount = balance; 
+ 
+        (bool success, ) = _to.call{value: amount}(""); 
+        require(success, "WF"); 
     }
 
     function get_whitelist() external onlyRole(DIRECTOR_ROLE) view returns (address [] memory) {
@@ -144,18 +158,22 @@ contract RoadToGloryCandyV1 is
         delete Whitelist;
     }
     function set_mint_price(uint256 new_price) external onlyRole(DIRECTOR_ROLE) nonReentrant {
+        require(new_price >= 1000, "E1"); // Safeguard, 1000 * 1e14 = 0.1
         bnb_price_of_mint = new_price;
     }
     function set_max_mint_per_wallet(uint256 new_max_mint_per_wallet) external onlyRole(DIRECTOR_ROLE) nonReentrant {
+        require (new_max_mint_per_wallet >= 1 && new_max_mint_per_wallet <= 10, "E2");
         max_mint_per_wallet = new_max_mint_per_wallet;
     }
     function set_max_public_mints(uint256 new_max_public_mints) external onlyRole(DIRECTOR_ROLE) nonReentrant {
+        require(new_max_public_mints >= 10 && new_max_public_mints <= 10000, "E3");
         max_number_of_public_mints = new_max_public_mints;
     }
     function reset_global_number_of_mints() external onlyRole(DIRECTOR_ROLE) {
         global_number_of_public_mints = 0;
     }
     function set_metadata(address addr) external onlyRole(DIRECTOR_ROLE) {
+        require(addr != address(0), "E4");
         metadata_generator = IRoadToGloryNFTMetadata(addr);
     }
     receive() external payable nonReentrant {}
