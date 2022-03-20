@@ -1,313 +1,184 @@
-/**
- *Submitted for verification at BscScan.com on 2021-06-06
-*/
+// SPDX-License-Identifier: Unlicensed
+pragma solidity 0.8.9;
 
-pragma solidity ^0.4.24;
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-library SafeMath {
-  function mul(uint256 a, uint256 b) internal pure returns (uint256) {
-    if (a == 0) {
-      return 0;
-    }
-    uint256 c = a * b;
-    assert(c / a == b);
-    return c;
-  }
+contract FunnyWorldGameToken is ERC20, Ownable {
+	mapping(address => bool) private _isBlacklisted;
+    mapping(address => bool) private feeExemption;
+	address public feeAddress;
+	uint256 public taxFee;
 
-  function div(uint256 a, uint256 b) internal pure returns (uint256) {
-    // assert(b > 0); // Solidity automatically throws when dividing by 0
-    uint256 c = a / b;
-    // assert(a == b * c + a % b); // There is no case in which this doesn't hold
-    return c;
-  }
+	uint256 public constant TAX_FEE_MAX = 500; // 5% = 500, 0.8% = 80
+	uint256 private constant TOTAL_SUPPLY_ = 1_000_000_000_000;
+	string private constant NAME_ = "Funny Game World";
+	string private constant SYMBOL_ = "FGW";
 
-  function sub(uint256 a, uint256 b) internal pure returns (uint256) {
-    assert(b <= a);
-    return a - b;
-  }
+	event FeeAddressChanged(address oldAddress, address newAddress);
+	event FeeTaxesChanged(uint256 newFee);
 
-  function add(uint256 a, uint256 b) internal pure returns (uint256) {
-    uint256 c = a + b;
-    assert(c >= a);
-    return c;
-  }
-}
-
-contract Ownable {
-  address public owner;
-
-
-  event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
-
-  /**
-   * @dev Throws if called by any account other than the owner.
-   */
-  modifier onlyOwner() {
-    require(msg.sender == owner);
-    _;
-  }
-
-
-  /**
-   * @dev Allows the current owner to transfer control of the contract to a newOwner.
-   * @param newOwner The address to transfer ownership to.
-   */
-  function transferOwnership(address newOwner) public onlyOwner {
-    require(newOwner != address(0));
-    emit OwnershipTransferred(owner, newOwner);
-    owner = newOwner;
-  }
-
-}
-
-contract Pausable is Ownable {
-  event Pause();
-  event Unpause();
-
-  bool public paused = false;
-
-
-  /**
-   * @dev Modifier to make a function callable only when the contract is not paused.
-   */
-  modifier whenNotPaused() {
-    require(!paused);
-    _;
-  }
-
-  /**
-   * @dev Modifier to make a function callable only when the contract is paused.
-   */
-  modifier whenPaused() {
-    require(paused);
-    _;
-  }
-
-  /**
-   * @dev called by the owner to pause, triggers stopped state
-   */
-  function pause() onlyOwner whenNotPaused public {
-    paused = true;
-    emit Pause();
-  }
-
-  /**
-   * @dev called by the owner to unpause, returns to normal state
-   */
-  function unpause() onlyOwner whenPaused public {
-    paused = false;
-    emit Unpause();
-  }
-}
-
-contract ERC20Basic {
-  uint256 public totalSupply;
-  function balanceOf(address who) public view returns (uint256);
-  function transfer(address to, uint256 value) public returns (bool);
-  event Transfer(address indexed from, address indexed to, uint256 value);
-}
-
-contract ERC20 is ERC20Basic {
-  function allowance(address owner, address spender) public view returns (uint256);
-  function transferFrom(address from, address to, uint256 value) public returns (bool);
-  function approve(address spender, uint256 value) public returns (bool);
-  event Approval(address indexed owner, address indexed spender, uint256 value);
-}
-
-
-contract StandardToken is ERC20 {
-  using SafeMath for uint256;
-  uint256 public txFee;
-  uint256 public burnFee;
-  address public FeeAddress;
-
-  mapping (address => mapping (address => uint256)) internal allowed;
-	mapping(address => bool) tokenBlacklist;
-	event Blacklist(address indexed blackListed, bool value);
-
-
-  mapping(address => uint256) balances;
-
-
-  function transfer(address _to, uint256 _value) public returns (bool) {
-    require(tokenBlacklist[msg.sender] == false);
-    require(_to != address(0));
-    require(_value <= balances[msg.sender]);
-    balances[msg.sender] = balances[msg.sender].sub(_value);
-    uint256 tempValue = _value;
-    if(txFee > 0 && msg.sender != FeeAddress){
-        uint256 DenverDeflaionaryDecay = tempValue.div(uint256(100 / txFee));
-        balances[FeeAddress] = balances[FeeAddress].add(DenverDeflaionaryDecay);
-        emit Transfer(msg.sender, FeeAddress, DenverDeflaionaryDecay);
-        _value =  _value.sub(DenverDeflaionaryDecay);
-    }
-
-    if(burnFee > 0 && msg.sender != FeeAddress){
-        uint256 Burnvalue = tempValue.div(uint256(100 / burnFee));
-        totalSupply = totalSupply.sub(Burnvalue);
-        emit Transfer(msg.sender, address(0), Burnvalue);
-        _value =  _value.sub(Burnvalue);
-    }
-
-    // SafeMath.sub will throw if there is not enough balance.
-
-
-    balances[_to] = balances[_to].add(_value);
-    emit Transfer(msg.sender, _to, _value);
-    return true;
-  }
-
-
-  function balanceOf(address _owner) public view returns (uint256 balance) {
-    return balances[_owner];
-  }
-
-  function transferFrom(address _from, address _to, uint256 _value) public returns (bool) {
-    require(tokenBlacklist[msg.sender] == false);
-    require(_to != address(0));
-    require(_value <= balances[_from]);
-    require(_value <= allowed[_from][msg.sender]);
-    balances[_from] = balances[_from].sub(_value);
-    uint256 tempValue = _value;
-    if(txFee > 0 && _from != FeeAddress){
-        uint256 DenverDeflaionaryDecay = tempValue.div(uint256(100 / txFee));
-        balances[FeeAddress] = balances[FeeAddress].add(DenverDeflaionaryDecay);
-        emit Transfer(_from, FeeAddress, DenverDeflaionaryDecay);
-        _value =  _value.sub(DenverDeflaionaryDecay);
-    }
-
-    if(burnFee > 0 && _from != FeeAddress){
-        uint256 Burnvalue = tempValue.div(uint256(100 / burnFee));
-        totalSupply = totalSupply.sub(Burnvalue);
-        emit Transfer(_from, address(0), Burnvalue);
-        _value =  _value.sub(Burnvalue);
-    }
-
-    balances[_to] = balances[_to].add(_value);
-    allowed[_from][msg.sender] = allowed[_from][msg.sender].sub(_value);
-    emit Transfer(_from, _to, _value);
-    return true;
-  }
-
-
-  function approve(address _spender, uint256 _value) public returns (bool) {
-    allowed[msg.sender][_spender] = _value;
-    emit Approval(msg.sender, _spender, _value);
-    return true;
-  }
-
-
-  function allowance(address _owner, address _spender) public view returns (uint256) {
-    return allowed[_owner][_spender];
-  }
-
-
-  function increaseApproval(address _spender, uint _addedValue) public returns (bool) {
-    allowed[msg.sender][_spender] = allowed[msg.sender][_spender].add(_addedValue);
-    emit Approval(msg.sender, _spender, allowed[msg.sender][_spender]);
-    return true;
-  }
-
-  function decreaseApproval(address _spender, uint _subtractedValue) public returns (bool) {
-    uint oldValue = allowed[msg.sender][_spender];
-    if (_subtractedValue > oldValue) {
-      allowed[msg.sender][_spender] = 0;
-    } else {
-      allowed[msg.sender][_spender] = oldValue.sub(_subtractedValue);
-    }
-    emit Approval(msg.sender, _spender, allowed[msg.sender][_spender]);
-    return true;
-  }
-
-
-
-  function _blackList(address _address, bool _isBlackListed) internal returns (bool) {
-	require(tokenBlacklist[_address] != _isBlackListed);
-	tokenBlacklist[_address] = _isBlackListed;
-	emit Blacklist(_address, _isBlackListed);
-	return true;
-  }
-
-
-
-}
-
-contract PausableToken is StandardToken, Pausable {
-
-  function transfer(address _to, uint256 _value) public whenNotPaused returns (bool) {
-    return super.transfer(_to, _value);
-  }
-
-  function transferFrom(address _from, address _to, uint256 _value) public whenNotPaused returns (bool) {
-    return super.transferFrom(_from, _to, _value);
-  }
-
-  function approve(address _spender, uint256 _value) public whenNotPaused returns (bool) {
-    return super.approve(_spender, _value);
-  }
-
-  function increaseApproval(address _spender, uint _addedValue) public whenNotPaused returns (bool success) {
-    return super.increaseApproval(_spender, _addedValue);
-  }
-
-  function decreaseApproval(address _spender, uint _subtractedValue) public whenNotPaused returns (bool success) {
-    return super.decreaseApproval(_spender, _subtractedValue);
-  }
-
-  function blackListAddress(address listAddress,  bool isBlackListed) public whenNotPaused onlyOwner  returns (bool success) {
-	return super._blackList(listAddress, isBlackListed);
-  }
-
-}
-
-contract CoinToken is PausableToken {
-    string public name;
-    string public symbol;
-    uint public decimals;
-    event Mint(address indexed from, address indexed to, uint256 value);
-    event Burn(address indexed burner, uint256 value);
-
-
-    constructor(string memory _name, string memory _symbol, uint256 _decimals, uint256 _supply, uint256 _txFee,uint256 _burnFee,address _FeeAddress,address tokenOwner,address service) public payable {
-        name = _name;
-        symbol = _symbol;
-        decimals = _decimals;
-        totalSupply = _supply * 10**_decimals;
-        balances[tokenOwner] = totalSupply;
-        owner = tokenOwner;
-	    txFee = _txFee;
-	    burnFee = _burnFee;
-	    FeeAddress = _FeeAddress;
-	    service.transfer(msg.value);
-        emit Transfer(address(0), tokenOwner, totalSupply);
-    }
-
-	function burn(uint256 _value) public{
-		_burn(msg.sender, _value);
+	modifier onlyValidAddress(address address_) {
+		require(address_ != address(0), "Address cannot be zero");
+		_;
 	}
 
-	function updateFee(uint256 _txFee,uint256 _burnFee,address _FeeAddress) onlyOwner public{
-	    txFee = _txFee;
-	    burnFee = _burnFee;
-	    FeeAddress = _FeeAddress;
-	}
+    constructor(address feeAddress_)
+		ERC20(
+			NAME_,
+			SYMBOL_
+		)
+	{
+		require(feeAddress_ != address(0), "Fee Address cannot be zero");
+		feeAddress = feeAddress_;
 
+		_exemptFromFee(feeAddress, true);
+		_exemptFromFee(_msgSender(), true);
 
-	function _burn(address _who, uint256 _value) internal {
-		require(_value <= balances[_who]);
-		balances[_who] = balances[_who].sub(_value);
-		totalSupply = totalSupply.sub(_value);
-		emit Burn(_who, _value);
-		emit Transfer(_who, address(0), _value);
-	}
+		uint256 totalSupply_ = TOTAL_SUPPLY_ * 10**decimals();
+		_mint(_msgSender(), totalSupply_);
 
-    function mint(address account, uint256 amount) onlyOwner public {
-
-        totalSupply = totalSupply.add(amount);
-        balances[account] = balances[account].add(amount);
-        emit Mint(address(0), account, amount);
-        emit Transfer(address(0), account, amount);
+        emit Transfer(address(0), _msgSender(), totalSupply_);
     }
 
+	function setFeeAddress(address feeAddress_)
+		external
+		onlyOwner()
+		onlyValidAddress(feeAddress_)
+	{
+		_setFeeAddress(feeAddress_);
+	}
 
+	function setTaxFeePercentage(uint256 fee_)
+		external
+		onlyOwner()
+	{
+		require(fee_ <= TAX_FEE_MAX, "Fee cannot be higher than 5%");
+		_setTaxFeePercentage(fee_);
+	}
+
+	function setBlacklist(
+		address address_,
+		bool status_
+	)
+		external
+		onlyOwner()
+		onlyValidAddress(address_)
+	{
+		_setBlacklist(address_, status_);
+	}
+
+	function isBlacklisted(address address_)
+		public
+		view
+		returns(bool)
+	{
+		return _isBlacklisted[address_];
+	}
+
+	function isExemptFromFee(address address_)
+		public
+		view
+		returns(bool)
+	{
+		return feeExemption[address_];
+	}
+
+	function exemptFromFee(
+		address address_,
+		bool exemptStatus_
+	)
+        external
+        onlyOwner()
+		onlyValidAddress(address_)
+    {
+        _exemptFromFee(address_, exemptStatus_);
+    }
+
+	// solium-disable-next-line security/no-assign-params
+	function transfer(
+		address to_,
+		uint256 amount_
+	)
+		public
+		override
+		returns (bool)
+	{
+		address from = _msgSender();
+
+		require(!isBlacklisted(from), "You're blacklisted");
+		require(!isBlacklisted(to_), "Recipient is blacklisted");
+
+		if(to_ != owner() && from != owner()) {
+			if(!isExemptFromFee(from))
+				amount_ = _takeTaxFee(from, amount_);
+		}
+
+		super._transfer(from, to_, amount_);
+
+		return true;
+	}
+
+	function _setFeeAddress(address feeAddress_)
+		private
+	{
+		_exemptFromFee(feeAddress, false);
+
+		address oldAddress = feeAddress;
+		feeAddress = feeAddress_;
+
+		_exemptFromFee(feeAddress, true);
+
+		emit FeeAddressChanged(oldAddress, feeAddress_);
+	}
+
+	function _isTaxFeeEnabled()
+		private
+		view
+		returns(bool)
+	{
+		return taxFee > 0;
+	}
+
+	function _takeTaxFee(
+		address from_,
+		uint256 amount_
+	)
+		private
+		returns(uint256 newAmount)
+	{
+		newAmount = amount_;
+
+		if(_isTaxFeeEnabled() && from_ != feeAddress) {
+			uint256 feeAmount = (amount_ * taxFee) / 10000;
+			super._transfer(from_, feeAddress, feeAmount);
+
+			newAmount = amount_ - feeAmount;
+		}
+	}
+
+	function _setBlacklist(
+		address address_,
+		bool status_
+	)
+		private
+	{
+		_isBlacklisted[address_] = status_;
+	}
+
+	function _setTaxFeePercentage(uint256 fee_)
+		private
+	{
+		taxFee = fee_;
+		emit FeeTaxesChanged(fee_);
+	}
+
+	function _exemptFromFee(
+		address address_,
+		bool exemptStatus_
+	)
+        private
+    {
+        feeExemption[address_] = exemptStatus_;
+    }
 }
