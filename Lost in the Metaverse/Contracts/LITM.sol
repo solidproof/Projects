@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.4;
+pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -18,10 +18,10 @@ contract ApeDadLITM is ERC721("ApeDad 2662: Lost In The Metaverse", "ApeDadLITM"
   using Strings for uint;
 
   uint public price = 0.11 ether;
-  uint public limitPerAddress = 33;
+  uint constant  public limitPerAddress = 33;
 
-  uint public maxSupply = 1111;
-  uint public maxRoyaltySupply = 101;
+  uint constant public maxSupply = 1111;
+  uint constant public maxRoyaltySupply = 101;
   uint public royaltySupply;
 
   mapping(address=>uint[]) public userTokens;

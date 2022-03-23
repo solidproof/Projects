@@ -17,6 +17,7 @@ contract RoyaltyDividener is Ownable {
   address public NFT;
 
   constructor(address _NFT) {
+    require (_NFT != address(0), "Invalid NFT address");
     NFT = _NFT;
   }
 
@@ -34,6 +35,7 @@ contract RoyaltyDividener is Ownable {
   }
 
   function setNftAddress(address _nft) external onlyOwner {
+    require (_nft != address(0), "Invalid NFT address");
     NFT = _nft;
   }
 
