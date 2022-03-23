@@ -49,11 +49,11 @@ contract NFT is
      * @dev Initialize function. Only called one time at time of deployment.
      */
     function initialize(
-        string memory _name,
-        string memory _symbol,
+        string memory newName,
+        string memory newSymbol,
         uint256 maxSupply
     ) public initializer {
-        ERC721Upgradeable.__ERC721_init(_name, _symbol);
+        ERC721Upgradeable.__ERC721_init(newName, newSymbol);
         OwnableUpgradeable.__Ownable_init();
         __AccessControl_init();
         MAX_SUPPLY = maxSupply;
@@ -85,14 +85,14 @@ contract NFT is
     }
 
     /**
-     * @notice Pause the minitng of token.
+     * @notice Pause the minting of token.
      */
     function pause() public onlyOwner {
         _pause();
     }
 
     /**
-     * @notice Unpause the miniting of token.
+     * @notice Unpause the minting of token.
      */
     function unpause() public onlyOwner {
         _unpause();
@@ -119,11 +119,11 @@ contract NFT is
      * @param tokenId. Token Id to give approval
      */
     function approve(address to, uint256 tokenId) public virtual override {
-        address owner = ownerOf(tokenId);
-        require(to != owner, "ERC721: approval to current owner");
+        address tokenOwner = ownerOf(tokenId);
+        require(to != tokenOwner, "ERC721: approval to current owner");
 
         require(
-            _msgSender() == owner || isApprovedForAll(owner, _msgSender()),
+            _msgSender() == tokenOwner || isApprovedForAll(tokenOwner, _msgSender()),
             "ERC721: approve caller is not owner nor approved for all"
         );
         _approve(to, tokenId);
@@ -164,10 +164,6 @@ contract NFT is
      * @dev Authorize upgrade so that only owner can upgrade.
      */
     function _authorizeUpgrade(address) internal override onlyOwner {}
-
-    function _burn(uint256 tokenId) internal virtual override {
-        super._burn(tokenId);
-    }
 
     function _beforeTokenTransfer(
         address from,

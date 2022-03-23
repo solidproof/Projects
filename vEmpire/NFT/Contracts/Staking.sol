@@ -23,7 +23,7 @@ contract StakeNFT is
     using SafeMathUpgradeable for uint256;
 
     /**
-     * @dev Keep track of user deposite tokens.
+     * @dev Keep track of user deposited tokens.
      */
     mapping(address => EnumerableSetUpgradeable.UintSet) private _deposits;
     mapping(address => uint256) public rewardDebt;
@@ -34,7 +34,6 @@ contract StakeNFT is
      */
     uint256 public accPerShare;
     uint256 public lastRewardBalance;
-    uint256 public lastRewardBlock;
     uint256 public totalReward;
     uint256 public lastTotalReward;
     uint256 public totalStaked;
@@ -59,6 +58,8 @@ contract StakeNFT is
         public
         initializer
     {
+        require(_erc20Token != address(0), "initialize: zero address");
+        require(_erc721Token != address(0), "initialize: zero address");
         OwnableUpgradeable.__Ownable_init();
         ERC20_CONTRACT = _erc20Token;
         ERC721_CONTRACT = _erc721Token;
