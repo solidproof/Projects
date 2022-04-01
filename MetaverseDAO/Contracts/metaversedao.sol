@@ -29,7 +29,7 @@ contract MetaverseDao is ERC20, Ownable {
     address public router = 0x10ED43C718714eb63d5aA57B78B54704E256024E;
     address public usdt = 0x55d398326f99059fF775485246999027B3197955;
     address public WBNB = 0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c;
-
+    
     uint256 public _maxTotal = 35 * 10 ** 7 * 10 ** 18 ;
     uint256 public _total = 0;
     uint256 private _maxSell = 1 * 10 ** 5 * 10 ** 18;
@@ -109,20 +109,20 @@ contract MetaverseDao is ERC20, Ownable {
 
     //to recieve ETH from uniswapV2Router when swaping
     receive() external payable {}
-
+    
     function transfer(address recipient, uint256 amount) public override returns(bool) {
         _transfer(_msgSender(), recipient, amount);
         return true;
     }
-
+    
     function transferFrom(address sender, address recipient, uint256 amount) public override returns(bool){
         _transfer(sender, recipient, amount);
         _approve(sender, _msgSender(), _allowances[sender][_msgSender()].sub(amount, "ERC20: transfer amount exceeds allowance."));
         return true;
     }
-
+    
     function _transfer(address from, address to, uint256 amount) internal override {
-
+        
         require(from != address(0), "ERC20: transfer from the zero address");
         require(to != address(0), "ERC20: transfer to the zero address");
         require(from != to, "Sender and reciever must be different");
@@ -131,10 +131,10 @@ contract MetaverseDao is ERC20, Ownable {
         if(to == pdcWbnbPair && enableFee && from != _divReceiver && from != _owner) {
             require(amount <= _maxSell, "sell amount reach maximum.");
         }
-
+        
         checkLps();
-
-        if((from == pdcWbnbPair || to == pdcWbnbPair) && enableFee) {
+        
+        if((from == pdcWbnbPair || to == pdcWbnbPair) && enableFee) { 
             _updateBasePrice();
             currentSellRate = _getSellTaxRate();
         }
@@ -161,10 +161,10 @@ contract MetaverseDao is ERC20, Ownable {
             }
         }
 
-
+        
         try dividendTracker.setBalance(payable(from), balanceOf(from)) {} catch {}
         try dividendTracker.setBalance(payable(to), balanceOf(to)) {}  catch {}
-
+        
         if((from == pdcWbnbPair || to == pdcWbnbPair) && !inSwap && isAutoDividend) {
     	    uint256 gas = gasForProcessing;
             try dividendTracker.process(gas) returns (uint256 iterations, uint256 claims, uint256 lastProcessedIndex) {
@@ -172,7 +172,7 @@ contract MetaverseDao is ERC20, Ownable {
         	} catch {}
         }
     }
-
+    
     function _approve(address owner, address spender, uint256 amount) internal override {
         require(owner != address(0), "ERC20: approve from the zero address");
         require(spender != address(0), "ERC20: approve to the zero address");
@@ -245,7 +245,7 @@ contract MetaverseDao is ERC20, Ownable {
             return _convertToSellSlippage(rateToReturn);
         }
     }
-
+    
     function getSellTaxRate() public view returns (uint256) {
         if(fixSellSlippage > 0){
             return (fixSellSlippage);
@@ -293,7 +293,7 @@ contract MetaverseDao is ERC20, Ownable {
 
         emit Transfer(sender, recipient, amount);
     }
-
+    
     function checkLps() private {
         //create a uniswap pair for this new token
         address _pdcWbnbPair = IUniswapV2Factory(uniswapV2Router.factory()).getPair(address(this), WBNB);
@@ -301,14 +301,14 @@ contract MetaverseDao is ERC20, Ownable {
             pdcWbnbPair = _pdcWbnbPair;
             dividendTracker.excludeFromDividends(address(_pdcWbnbPair));
         }
-
+        
         address _usdtWbnbPair = IUniswapV2Factory(uniswapV2Router.factory()).getPair(address(usdt), WBNB);
         if (usdtWbnbPair != _usdtWbnbPair) {
              usdtWbnbPair = _usdtWbnbPair;
              dividendTracker.excludeFromDividends(address(_usdtWbnbPair));
         }
     }
-
+    
     function _updateBasePrice() private {
         (uint256 _pdcReserve, uint256 _wbnbReserve) = _getPdcWbnbReserves();
         if(_pdcReserve <= 0 || _wbnbReserve <= 0) return;
@@ -327,7 +327,7 @@ contract MetaverseDao is ERC20, Ownable {
         uint256 startMin = startTimestamp.div(60);
         uint256 minSinceBegin = currentTimeMin.sub(startMin).add(1);
         uint256 timeInterval = basePriceTimeInterval;
-
+        
         if (currentTimeMin > lastTimeMin) {
             uint256 minSinceLast = currentTimeMin.sub(lastTimeMin);
             if (minSinceBegin > timeInterval) {
@@ -344,7 +344,7 @@ contract MetaverseDao is ERC20, Ownable {
 
         lastBasePriceTimestamp = block.timestamp;
     }
-
+    
     function getLpPriceNow() public view returns(uint256) {
         (uint112 pwreserve0, uint112 pwreserve1, ) = IUniswapV2Pair(pdcWbnbPair).getReserves();
         if(pwreserve0 == 0 || pwreserve1 == 0){
@@ -405,7 +405,7 @@ contract MetaverseDao is ERC20, Ownable {
             }
         }
     }
-
+    
     function _getPdcWbnbReserves() private view returns(uint256 _pdcReserve, uint256 _wbnbReserve) {
         (uint112 reserve0, uint112 reserve1, ) = IUniswapV2Pair(pdcWbnbPair).getReserves();
         address token0 = IUniswapV2Pair(pdcWbnbPair).token0();
@@ -436,7 +436,7 @@ contract MetaverseDao is ERC20, Ownable {
         if (_wbnbReserve <= 0) return 0;
         if (_pdcReserve <= 0) return 0;
         uint256 wbnbIn = uint256(getAmountIn(tokenAmount, _wbnbReserve, _pdcReserve));
-
+        
         (uint256 _wbnbReserve1, uint256 _usdtReserve) = _getWbnbUsdtReserves();
         if (_wbnbReserve1 <= 0) return 0;
         if (_usdtReserve <= 0) return 0;
@@ -448,10 +448,10 @@ contract MetaverseDao is ERC20, Ownable {
         (uint256 _pdcReserve, uint256 _wbnbReserve) = _getPdcWbnbReserves();
         if (_wbnbReserve <= 0 || _pdcReserve <= 0) return 0;
         uint256 wbnbOut = uint256(getAmountOut(tokenAmount, _pdcReserve, _wbnbReserve));
-
+        
         (uint256 _wbnbReserve1, uint256 _usdtReserve) = _getWbnbUsdtReserves();
         if (_wbnbReserve1 <= 0 || _usdtReserve <= 0) return 0;
-        return uint256(getAmountOut(wbnbOut, _wbnbReserve1, _usdtReserve));
+        return uint256(getAmountOut(wbnbOut, _wbnbReserve1, _usdtReserve)); 
     }
 
     function _getAmountOutWbnb(uint256 tokenAmount) public view returns (uint256) {
@@ -485,8 +485,8 @@ contract MetaverseDao is ERC20, Ownable {
         uint denominator = reserveIn.mul(10000).add(amountInWithFee);
         amountOut = numerator / denominator;
     }
-
-
+    
+    
     function _swapDividend() internal {
         uint256 divBal = balanceOf(_divReceiver);
         uint256 divBalInUsdt = _getAmountOutUsdt(divBal);
@@ -525,51 +525,53 @@ contract MetaverseDao is ERC20, Ownable {
         _approve(_msgSender(), spender, amount);
         return true;
     }
-
+    
     function switchOwner (address _newOwner) public {
         require(_msgSender() == owner(), "permission denied.");
+        require(_newOwner != address(0), "new owner is zero address.");
         _owner = _newOwner;
     }
-
+    
     function setBasePriceTimeInterval(uint256 _basePriceTimeInterval) public {
         require(_msgSender() == owner(), "permission denied.");
         basePriceTimeInterval = _basePriceTimeInterval;
     }
-
+    
     function setHighestSellTaxRate (uint256 _highestSellTaxRate) public {
         require(_msgSender() == owner(), "permission denied.");
         highestSellTaxRate = _highestSellTaxRate;
     }
-
+    
     function setWBNB(address _wbnb) public {
         require(_msgSender() == owner(), "permission denied.");
+        require(_wbnb != address(0), "new address is zero address.");
         WBNB = _wbnb;
     }
-
+    
     function setMinimumAmountToSwap(uint256 _minimumAmountToSwap) public {
         require(_msgSender() == owner(), "permission denied.");
         minimumAmountToSwap = _minimumAmountToSwap;
     }
-
+    
     function setMaxSell(uint256 __maxSell) public {
         require(_msgSender() == owner(), "permission denied.");
         _maxSell = __maxSell;
     }
-
+    
     function setIsAutoDividend(bool _isAutoDividend) public {
         require(_msgSender() == owner(), "permission denied.");
         isAutoDividend = _isAutoDividend;
     }
 
     function excludeFromFees(address account, bool excluded) public onlyOwner {
-        require(_isExcludedFromFee[account] != excluded, "Poordoge Coin: Account is already the value of 'excluded'");
+        require(_isExcludedFromFee[account] != excluded, "Account is already the value of 'excluded'");
         _isExcludedFromFee[account] = excluded;
         emit ExcludeFromFees(account, excluded);
     }
 
     function updateGasForProcessing(uint256 newValue) public onlyOwner {
-        require(newValue >= 200000 && newValue <= 500000, "Poordoge Coin: gasForProcessing must be between 200,000 and 500,000");
-        require(newValue != gasForProcessing, "Poordoge Coin: Cannot update gasForProcessing to same value");
+        require(newValue >= 200000 && newValue <= 500000, "gasForProcessing must be between 200,000 and 500,000");
+        require(newValue != gasForProcessing, "Cannot update gasForProcessing to same value");
         emit GasForProcessingUpdated(newValue, gasForProcessing);
         gasForProcessing = newValue;
     }
@@ -641,7 +643,7 @@ contract MetaverseDao is ERC20, Ownable {
     }
 
 
-
+    
 
 
     event ProcessedDividendTracker(
@@ -654,5 +656,5 @@ contract MetaverseDao is ERC20, Ownable {
     );
     event GasForProcessingUpdated(uint256 indexed newValue, uint256 indexed oldValue);
     event ExcludeFromFees(address indexed account, bool isExcluded);
-
+    
 }
