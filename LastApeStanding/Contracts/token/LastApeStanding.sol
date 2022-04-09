@@ -25,22 +25,35 @@
 ###############################################################
 ###############################################################
 
+This is the official contract of the LastApeStanding token. This token
+is the first of its kind to implement an innovative jackpot mechanism.
+
+Every buy and sell will feed the jackpot (2%/5%). If for 10 mins, no buys are
+recorded, the last buyer will receive a portion of the jackpot. This will drive
+a consistent buy pressure.
+
+The jackpot has a hard limit ($100K) that, if reached, will trigger the big bang event. A portion
+of the jackpot will be cashed out to the buyback wallet. The buyback wallet will
+then either burn the tokens or dedicate a portion of it towards staking.
+
 Website: https://www.lastapestanding.com
 Twitter: https://twitter.com/the_las_bsc
 */
 
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.13;
+pragma solidity 0.8.13;
 
-import "./Address.sol";
-import "./EnumerableSet.sol";
-import "./IBEP20.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
+import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
+import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "./Ownable.sol";
-import "./Routers.sol";
-import "./SafeMath.sol";
 
-contract LastApeStanding is Context, IBEP20, Ownable {
+contract LastApeStanding is Context, IERC20, Ownable {
     using SafeMath for uint256;
     using Address for address;
     using EnumerableSet for EnumerableSet.AddressSet;
@@ -52,9 +65,7 @@ contract LastApeStanding is Context, IBEP20, Ownable {
     EnumerableSet.AddressSet private _isExcludedFromSwapAndLiquify;
 
     // 100%
-    uint256 private MAX_PCT = 10000;
-    // 0%
-    uint256 private MIN_PCT = 0;
+    uint256 private constant MAX_PCT = 10000;
     uint256 private constant BNB_DECIMALS = 18;
     uint256 private constant USDT_DECIMALS = 18;
     address private constant USDT = 0x55d398326f99059fF775485246999027B3197955;
@@ -187,7 +198,7 @@ contract LastApeStanding is Context, IBEP20, Ownable {
     event SwapAndLiquify(
         uint256 tokensSwapped,
         uint256 bnbReceived,
-        uint256 tokensIntoLiqudity
+        uint256 tokensIntoLiquidity
     );
     event DevFeesCollected(uint256 bnbCollected);
     event MarketingFeesCollected(uint256 bnbCollected);
@@ -200,6 +211,39 @@ contract LastApeStanding is Context, IBEP20, Ownable {
         uint256 tokensToBuyback
     );
     event BigBang(uint256 cashedOut, uint256 tokensOut);
+
+    event BuyFeesChanged(
+        uint256 liquidityFee,
+        uint256 marketingFee,
+        uint256 devFee,
+        uint256 jackpotFee
+    );
+
+    event SellFeesChanged(
+        uint256 liquidityFee,
+        uint256 marketingFee,
+        uint256 devFee,
+        uint256 jackpotFee
+    );
+
+    event JackpotFeaturesChanged(
+        uint256 jackpotCashout,
+        uint256 jackpotBuyerShare,
+        uint256 jackpotMinBuy
+    );
+
+    event JackpotTimespanChanged(uint256 jackpotTimespan);
+
+    event MaxTransferAmountChanged(uint256 maxTxAmount);
+
+    event MaxWalletSizeChanged(uint256 maxWalletSize);
+
+    event TokenToSellOnSwapChanged(uint256 numTokens);
+
+    event BigBangFeaturesChanged(
+        uint256 jackpotHardBuyback,
+        uint256 jackpotHardLimit
+    );
 
     modifier lockTheSwap() {
         _inSwapAndLiquify = true;
@@ -382,6 +426,8 @@ contract LastApeStanding is Context, IBEP20, Ownable {
         bMarketingFee = marketingFee;
         bDevFee = devFee;
         bJackpotFee = jackpotFee;
+
+        emit BuyFeesChanged(bLiquidityFee, bMarketingFee, bDevFee, bJackpotFee);
     }
 
     function getBuyTax() public view returns (uint256) {
@@ -403,6 +449,13 @@ contract LastApeStanding is Context, IBEP20, Ownable {
         sMarketingFee = marketingFee;
         sDevFee = devFee;
         sJackpotFee = jackpotFee;
+
+        emit SellFeesChanged(
+            sLiquidityFee,
+            sMarketingFee,
+            sDevFee,
+            sJackpotFee
+        );
     }
 
     function getSellTax() public view returns (uint256) {
@@ -432,6 +485,12 @@ contract LastApeStanding is Context, IBEP20, Ownable {
         jackpotCashout = _jackpotCashout;
         jackpotBuyerShare = _jackpotBuyerShare;
         jackpotMinBuy = _jackpotMinBuy;
+
+        emit JackpotFeaturesChanged(
+            jackpotCashout,
+            jackpotBuyerShare,
+            jackpotMinBuy
+        );
     }
 
     function setJackpotHardFeatures(
@@ -452,6 +511,8 @@ contract LastApeStanding is Context, IBEP20, Ownable {
             "Jackpot hard value limit for the big bang needs to be between 30K and 250K USD"
         );
         jackpotHardLimit = _jackpotHardLimit;
+
+        emit BigBangFeaturesChanged(jackpotHardBuyback, jackpotHardLimit);
     }
 
     function setJackpotTimespanInSeconds(uint256 _jackpotTimespan)
@@ -464,6 +525,8 @@ contract LastApeStanding is Context, IBEP20, Ownable {
             "Jackpot timespan needs to be between 30 and 1200 seconds (20 minutes)"
         );
         jackpotTimespan = _jackpotTimespan;
+
+        emit JackpotTimespanChanged(jackpotTimespan);
     }
 
     function setMaxTxAmount(uint256 txAmount) external onlyAuthorized {
@@ -472,6 +535,8 @@ contract LastApeStanding is Context, IBEP20, Ownable {
             "Maximum transaction limit can't be less than 0.1% of the total supply"
         );
         maxTxAmount = txAmount;
+
+        emit MaxTransferAmountChanged(maxTxAmount);
     }
 
     function setMaxWallet(uint256 amount) external onlyAuthorized {
@@ -480,6 +545,8 @@ contract LastApeStanding is Context, IBEP20, Ownable {
             "Max wallet size must be at least 0.1% of the total supply"
         );
         maxWalletSize = amount;
+
+        emit MaxWalletSizeChanged(maxWalletSize);
     }
 
     function setNumTokensSellToAddToLiquidity(uint256 numTokens)
@@ -487,6 +554,8 @@ contract LastApeStanding is Context, IBEP20, Ownable {
         onlyAuthorized
     {
         numTokensSellToAddToLiquidity = numTokens;
+
+        emit TokenToSellOnSwapChanged(numTokensSellToAddToLiquidity);
     }
 
     function isJackpotEligible(uint256 tokenAmount) public view returns (bool) {
@@ -603,6 +672,10 @@ contract LastApeStanding is Context, IBEP20, Ownable {
     }
 
     function setUniswapPair(address otherPairAddress) external onlyOwner {
+        require(
+            otherPairAddress != address(0),
+            "You must supply a non-zero address"
+        );
         uniswapV2Pair = otherPairAddress;
     }
 
@@ -973,7 +1046,7 @@ contract LastApeStanding is Context, IBEP20, Ownable {
         bool takeFee
     ) private {
         if (!takeFee) {
-            // If we're here, it means either the sender or receipient is excluded from taxes
+            // If we're here, it means either the sender or recipient is excluded from taxes
             // Also, it could be that this is just a transfer of tokens between wallets
             _liquidityFee = 0;
             _marketingFee = 0;
