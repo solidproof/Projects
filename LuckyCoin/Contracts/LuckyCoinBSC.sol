@@ -93,7 +93,7 @@ contract LuckyCoin is ERC20Burnable {
     uint256 public maximumWeekBurnAmount;
 
     //Constructor
-    constructor() ERC20("LuckyCoin", "LCK") {
+    constructor() ERC20("LuckyCoin BSC", "LCKB") {
         totalAddresses = 0;
         randomMintLastTimeStamp = 0;
         randomMintStartBlockNumber = 0;
