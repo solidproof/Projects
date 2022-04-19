@@ -2,16 +2,16 @@
  *Submitted for verification at Etherscan.io on 2022-04-13
 */
 
-/**
+/** 
 
-Telegram Portal: https://t.me/APEBORG
-Website: https://apeborg.com/
-Twitter: https://twitter.com/ApeborgToken
-
+Telegram Portal: https://t.me/ShiborgInu
+Website: https://shiborgtoken.com/ 
+Twitter: https://twitter.com/ShiborgToken
+Facebook: https://www.facebook.com/ShiborgToken
 */
 
 /// @custom:security-contact contact@shiborgtoken.com
-pragma solidity 0.8.10;
+pragma solidity ^0.8.10;
 
 // SPDX-License-Identifier: Unlicensed
 interface IERC20 {
@@ -221,6 +221,7 @@ library SafeMath {
     ) internal pure returns (uint256) {
         require(b > 0, errorMessage);
         uint256 c = a / b;
+        // assert(a == b * c + a % b); // There is no case in which this doesn't hold
 
         return c;
     }
@@ -926,7 +927,7 @@ interface IUniswapV2Router02 is IUniswapV2Router01 {
 contract APEBORG is Context, IERC20, Ownable, TokenRecover {
     using SafeMath for uint256;
     using Address for address;
-
+    
     mapping(address => uint256) private _rOwned;
     mapping(address => uint256) private _tOwned;
     mapping(address => mapping(address => uint256)) private _allowances;
@@ -941,16 +942,16 @@ contract APEBORG is Context, IERC20, Ownable, TokenRecover {
     address[] private _blackListedBots;
 
     uint256 private constant MAX = ~uint256(0);
-    uint256 private constant _T_TOTAL = 1000000000 * 10**6 * 10**9;
-    uint256 private _rTotal = (MAX - (MAX % _T_TOTAL));
+    uint256 private _tTotal = 1000000000 * 10**6 * 10**9;    
+    uint256 private _rTotal = (MAX - (MAX % _tTotal));
     uint256 private _tFeeTotal;
 
-    address payable public _devWallet =
+    address payable public _devwallet =
         payable(address(0x44d09f1495F4ab34F2C198cAb3FB63E9Fe9F82Dd));
 
-    string private constant _NAME = "APEBORG";
-    string private constant _SYMBOL = "APEBORG";
-    uint8 private constant _DECIMALS = 9;
+    string private _name = "APEBORG";
+    string private _symbol = "APEBORG";
+    uint8 private _decimals = 9;
 
     struct BuyFee {
         uint8 tax;
@@ -971,7 +972,7 @@ contract APEBORG is Context, IERC20, Ownable, TokenRecover {
     IUniswapV2Router02 public uniswapV2Router;
     address public uniswapV2Pair;
 
-    bool private inSwapAndLiquify;
+    bool inSwapAndLiquify;
     bool public swapAndLiquifyEnabled = true;
 
     uint256 public _maxTxAmount = 1000000000 * 10**6 * 10**9;
@@ -980,17 +981,14 @@ contract APEBORG is Context, IERC20, Ownable, TokenRecover {
 
     event botAddedToBlacklist(address account);
     event botRemovedFromBlacklist(address account);
-
+    
     event SwapAndLiquifyEnabledUpdated(bool enabled);
     event SwapAndLiquify(
         uint256 tokensSwapped,
         uint256 ethReceived,
-        uint256 tokensIntoLiquidity
+        uint256 tokensIntoLiqudity
     );
     event UpdateUniswapV2Router(address indexed newAddress, address indexed oldAddress);
-    event UpdateMaxWalletSize(uint256 indexed newSize, uint256 oldSize);
-    event UpdateMaxTxPercent(uint256 indexed newSize, uint256 oldSize);
-    event UpdateNumTokenSellToAddToLiquidity(uint256 indexed newSize, uint256 oldSize);
 
     modifier lockTheSwap() {
         inSwapAndLiquify = true;
@@ -1007,8 +1005,8 @@ contract APEBORG is Context, IERC20, Ownable, TokenRecover {
         sellFee.tax = 2;
         sellFee.liquidity = 8;
 
-        IUniswapV2Router02 _uniswapV2Router = IUniswapV2Router02(0x10ED43C718714eb63d5aA57B78B54704E256024E);
-        // Create a uniswap pair for this new token
+        IUniswapV2Router02 _uniswapV2Router = IUniswapV2Router02(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
+        // Create a uniswap pair for this new token        
         uniswapV2Pair = IUniswapV2Factory(_uniswapV2Router.factory()).createPair(address(this), _uniswapV2Router.WETH());
 
         // set the rest of the contract variables
@@ -1017,13 +1015,13 @@ contract APEBORG is Context, IERC20, Ownable, TokenRecover {
         // exclude owner, dev wallet, and this contract from fee
         _isExcludedFromFee[owner()] = true;
         _isExcludedFromFee[address(this)] = true;
-        _isExcludedFromFee[_devWallet] = true;
+        _isExcludedFromFee[_devwallet] = true;
 
-        _isExcludedFromLimit[_devWallet] = true;
+        _isExcludedFromLimit[_devwallet] = true;             
         _isExcludedFromLimit[owner()] = true;
         _isExcludedFromLimit[address(this)] = true;
 
-        emit Transfer(address(0), _msgSender(), _T_TOTAL);
+        emit Transfer(address(0), _msgSender(), _tTotal);
     }
 
     function setRouterAddress(address payable newRouter) external onlyOwner {
@@ -1033,20 +1031,20 @@ contract APEBORG is Context, IERC20, Ownable, TokenRecover {
             uniswapV2Router = _newUniswapRouter;
     }
 
-    function name() public pure returns (string memory) {
-        return _NAME;
+    function name() public view returns (string memory) {
+        return _name;
     }
 
-    function symbol() public pure returns (string memory) {
-        return _SYMBOL;
+    function symbol() public view returns (string memory) {
+        return _symbol;
     }
 
-    function decimals() public pure returns (uint8) {
-        return _DECIMALS;
+    function decimals() public view returns (uint8) {
+        return _decimals;
     }
 
-    function totalSupply() public pure override returns (uint256) {
-        return _T_TOTAL;
+    function totalSupply() public view override returns (uint256) {
+        return _tTotal;
     }
 
     function balanceOf(address account) public view override returns (uint256) {
@@ -1063,13 +1061,13 @@ contract APEBORG is Context, IERC20, Ownable, TokenRecover {
         return true;
     }
 
-    function allowance(address owner_, address spender_)
+    function allowance(address owner, address spender)
         public
         view
         override
         returns (uint256)
     {
-        return _allowances[owner_][spender_];
+        return _allowances[owner][spender];
     }
 
     function approve(address spender, uint256 amount)
@@ -1164,7 +1162,7 @@ contract APEBORG is Context, IERC20, Ownable, TokenRecover {
         view
         returns (uint256)
     {
-        require(tAmount <= _T_TOTAL, "Amount must be less than supply");
+        require(tAmount <= _tTotal, "Amount must be less than supply");
 
         (
             ,
@@ -1199,8 +1197,7 @@ contract APEBORG is Context, IERC20, Ownable, TokenRecover {
     }
 
     function updateDevWallet(address payable newAddress) external onlyOwner {
-        require(newAddress != address(0), "Cannot be zero address");
-        _devWallet = newAddress;
+        _devwallet = newAddress;
     }
 
     function addBotToBlacklist(address account) external onlyOwner {
@@ -1302,25 +1299,18 @@ contract APEBORG is Context, IERC20, Ownable, TokenRecover {
     }
 
     function setNumTokensSellToAddToLiquidity(uint256 numTokens) external onlyOwner {
-        uint256 oldSize = numTokensSellToAddToLiquidity;
         numTokensSellToAddToLiquidity = numTokens;
-        emit UpdateNumTokenSellToAddToLiquidity(oldSize, numTokens);
     }
 
     function setMaxTxPercent(uint256 maxTxPercent) external onlyOwner {
-        uint256 oldSize = _maxTxAmount;
-        _maxTxAmount = _T_TOTAL.mul(maxTxPercent).div(10**2);
-        emit UpdateMaxTxPercent(oldSize, _maxTxAmount);
+        _maxTxAmount = _tTotal.mul(maxTxPercent).div(10**2);
     }
 
     function _setMaxWalletSizePercent(uint256 maxWalletSize)
         external
         onlyOwner
     {
-        uint256 oldSize = _maxWalletSize;
-        _maxWalletSize = _T_TOTAL.mul(maxWalletSize).div(10**2);
-
-        emit UpdateMaxWalletSize(oldSize, _maxWalletSize);
+        _maxWalletSize = _tTotal.mul(maxWalletSize).div(10**2);
     }
 
     function setSwapAndLiquifyEnabled(bool _enabled) public onlyOwner {
@@ -1382,16 +1372,16 @@ contract APEBORG is Context, IERC20, Ownable, TokenRecover {
 
     function _getCurrentSupply() private view returns (uint256, uint256) {
         uint256 rSupply = _rTotal;
-        uint256 tSupply = _T_TOTAL;
+        uint256 tSupply = _tTotal;
         for (uint256 i = 0; i < _excluded.length; i++) {
             if (
                 _rOwned[_excluded[i]] > rSupply ||
                 _tOwned[_excluded[i]] > tSupply
-            ) return (_rTotal, _T_TOTAL);
+            ) return (_rTotal, _tTotal);
             rSupply = rSupply.sub(_rOwned[_excluded[i]]);
             tSupply = tSupply.sub(_tOwned[_excluded[i]]);
         }
-        if (rSupply < _rTotal.div(_T_TOTAL)) return (_rTotal, _T_TOTAL);
+        if (rSupply < _rTotal.div(_tTotal)) return (_rTotal, _tTotal);
         return (rSupply, tSupply);
     }
 
@@ -1425,7 +1415,7 @@ contract APEBORG is Context, IERC20, Ownable, TokenRecover {
     function setBuy() private {
         _taxFee = buyFee.tax;
         _liquidityFee = buyFee.liquidity;
-
+        
     }
 
     function setSell() private {
@@ -1442,15 +1432,15 @@ contract APEBORG is Context, IERC20, Ownable, TokenRecover {
     }
 
     function _approve(
-        address owner_,
-        address spender_,
-        uint256 amount_
+        address owner,
+        address spender,
+        uint256 amount
     ) private {
-        require(owner_ != address(0), "ERC20: approve from the zero address");
-        require(spender_ != address(0), "ERC20: approve to the zero address");
+        require(owner != address(0), "ERC20: approve from the zero address");
+        require(spender != address(0), "ERC20: approve to the zero address");
 
-        _allowances[owner_][spender_] = amount_;
-        emit Approval(owner_, spender_, amount_);
+        _allowances[owner][spender] = amount;
+        emit Approval(owner, spender, amount);
     }
 
     function _transfer(
@@ -1465,11 +1455,11 @@ contract APEBORG is Context, IERC20, Ownable, TokenRecover {
         require(!_isBlackListedBot[msg.sender], "you are blacklisted");
         require(!_isBlackListedBot[tx.origin], "blacklisted");
 
-        if(to != uniswapV2Pair) {
+        if(to != uniswapV2Pair) { 
             require(balanceOf(to) + amount < _maxWalletSize, "TOKEN: Balance exceeds wallet size!");
         }
-
-        if (!_isExcludedFromLimit[from] && !_isExcludedFromLimit[to]) {
+        
+        if (!_isExcludedFromLimit[from] && !_isExcludedFromLimit[to]) { 
             require(amount <= _maxTxAmount,"Transfer amount exceeds the maxTxAmount.");
         }
 
@@ -1502,7 +1492,7 @@ contract APEBORG is Context, IERC20, Ownable, TokenRecover {
         //if any account belongs to _isExcludedFromFee account then remove the fee
         if ((_isExcludedFromFee[from] || _isExcludedFromFee[to]) || (from != uniswapV2Pair && to != uniswapV2Pair)) {
             takeFee = false;
-        } else {
+        } else {            
             //Set Fee for Buys
             if(from == uniswapV2Pair && to != address(uniswapV2Router)) {
                 setBuy();
@@ -1511,8 +1501,8 @@ contract APEBORG is Context, IERC20, Ownable, TokenRecover {
             if (to == uniswapV2Pair && from != address(uniswapV2Router)) {
                 setSell();
             }
-        }
-
+        }        
+        
         //transfer amount, it will take tax, burn, liquidity fee
         _tokenTransfer(from, to, amount, takeFee);
     }
@@ -1536,7 +1526,7 @@ contract APEBORG is Context, IERC20, Ownable, TokenRecover {
 
         // add liquidity to uniswap
         addLiquidity(otherHalf, newBalance);
-
+        
         emit SwapAndLiquify(half, newBalance, otherHalf);
     }
 
@@ -1580,9 +1570,9 @@ contract APEBORG is Context, IERC20, Ownable, TokenRecover {
         uint256 amount,
         bool takeFee
     ) private {
-        if (!takeFee)
-            removeAllFee();
-
+        if (!takeFee) 
+            removeAllFee();    
+            
         if (_isExcluded[sender] && !_isExcluded[recipient]) {
             _transferFromExcluded(sender, recipient, amount);
         } else if (!_isExcluded[sender] && _isExcluded[recipient]) {
