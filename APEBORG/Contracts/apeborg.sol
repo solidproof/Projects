@@ -1,16 +1,13 @@
 /**
- *Submitted for verification at Etherscan.io on 2022-04-13
+Telegram Portal: https://t.me/APEBORG
+Website: https://apeborg.com/
+Twitter: https://twitter.com/ApeborgToken
+Facebook: https://facebook.com/ApeborgToken
+Discord: https://discord.gg/GYAKwUGmJQ
+Reddit: https://reddit.com/r/ApeborgToken
 */
 
-/** 
-
-Telegram Portal: https://t.me/ShiborgInu
-Website: https://shiborgtoken.com/ 
-Twitter: https://twitter.com/ShiborgToken
-Facebook: https://www.facebook.com/ShiborgToken
-*/
-
-/// @custom:security-contact contact@shiborgtoken.com
+/// @custom:security-contact contact@apeborg.com
 pragma solidity ^0.8.10;
 
 // SPDX-License-Identifier: Unlicensed
@@ -927,7 +924,7 @@ interface IUniswapV2Router02 is IUniswapV2Router01 {
 contract APEBORG is Context, IERC20, Ownable, TokenRecover {
     using SafeMath for uint256;
     using Address for address;
-    
+
     mapping(address => uint256) private _rOwned;
     mapping(address => uint256) private _tOwned;
     mapping(address => mapping(address => uint256)) private _allowances;
@@ -942,7 +939,7 @@ contract APEBORG is Context, IERC20, Ownable, TokenRecover {
     address[] private _blackListedBots;
 
     uint256 private constant MAX = ~uint256(0);
-    uint256 private _tTotal = 1000000000 * 10**6 * 10**9;    
+    uint256 private _tTotal = 1000000000 * 10**6 * 10**9;
     uint256 private _rTotal = (MAX - (MAX % _tTotal));
     uint256 private _tFeeTotal;
 
@@ -981,7 +978,7 @@ contract APEBORG is Context, IERC20, Ownable, TokenRecover {
 
     event botAddedToBlacklist(address account);
     event botRemovedFromBlacklist(address account);
-    
+
     event SwapAndLiquifyEnabledUpdated(bool enabled);
     event SwapAndLiquify(
         uint256 tokensSwapped,
@@ -1006,7 +1003,7 @@ contract APEBORG is Context, IERC20, Ownable, TokenRecover {
         sellFee.liquidity = 8;
 
         IUniswapV2Router02 _uniswapV2Router = IUniswapV2Router02(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
-        // Create a uniswap pair for this new token        
+        // Create a uniswap pair for this new token
         uniswapV2Pair = IUniswapV2Factory(_uniswapV2Router.factory()).createPair(address(this), _uniswapV2Router.WETH());
 
         // set the rest of the contract variables
@@ -1017,7 +1014,7 @@ contract APEBORG is Context, IERC20, Ownable, TokenRecover {
         _isExcludedFromFee[address(this)] = true;
         _isExcludedFromFee[_devwallet] = true;
 
-        _isExcludedFromLimit[_devwallet] = true;             
+        _isExcludedFromLimit[_devwallet] = true;
         _isExcludedFromLimit[owner()] = true;
         _isExcludedFromLimit[address(this)] = true;
 
@@ -1415,7 +1412,7 @@ contract APEBORG is Context, IERC20, Ownable, TokenRecover {
     function setBuy() private {
         _taxFee = buyFee.tax;
         _liquidityFee = buyFee.liquidity;
-        
+
     }
 
     function setSell() private {
@@ -1455,11 +1452,11 @@ contract APEBORG is Context, IERC20, Ownable, TokenRecover {
         require(!_isBlackListedBot[msg.sender], "you are blacklisted");
         require(!_isBlackListedBot[tx.origin], "blacklisted");
 
-        if(to != uniswapV2Pair) { 
+        if(to != uniswapV2Pair) {
             require(balanceOf(to) + amount < _maxWalletSize, "TOKEN: Balance exceeds wallet size!");
         }
-        
-        if (!_isExcludedFromLimit[from] && !_isExcludedFromLimit[to]) { 
+
+        if (!_isExcludedFromLimit[from] && !_isExcludedFromLimit[to]) {
             require(amount <= _maxTxAmount,"Transfer amount exceeds the maxTxAmount.");
         }
 
@@ -1492,7 +1489,7 @@ contract APEBORG is Context, IERC20, Ownable, TokenRecover {
         //if any account belongs to _isExcludedFromFee account then remove the fee
         if ((_isExcludedFromFee[from] || _isExcludedFromFee[to]) || (from != uniswapV2Pair && to != uniswapV2Pair)) {
             takeFee = false;
-        } else {            
+        } else {
             //Set Fee for Buys
             if(from == uniswapV2Pair && to != address(uniswapV2Router)) {
                 setBuy();
@@ -1501,8 +1498,8 @@ contract APEBORG is Context, IERC20, Ownable, TokenRecover {
             if (to == uniswapV2Pair && from != address(uniswapV2Router)) {
                 setSell();
             }
-        }        
-        
+        }
+
         //transfer amount, it will take tax, burn, liquidity fee
         _tokenTransfer(from, to, amount, takeFee);
     }
@@ -1526,7 +1523,7 @@ contract APEBORG is Context, IERC20, Ownable, TokenRecover {
 
         // add liquidity to uniswap
         addLiquidity(otherHalf, newBalance);
-        
+
         emit SwapAndLiquify(half, newBalance, otherHalf);
     }
 
@@ -1570,9 +1567,9 @@ contract APEBORG is Context, IERC20, Ownable, TokenRecover {
         uint256 amount,
         bool takeFee
     ) private {
-        if (!takeFee) 
-            removeAllFee();    
-            
+        if (!takeFee)
+            removeAllFee();
+
         if (_isExcluded[sender] && !_isExcluded[recipient]) {
             _transferFromExcluded(sender, recipient, amount);
         } else if (!_isExcluded[sender] && _isExcluded[recipient]) {
