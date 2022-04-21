@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.0;
+pragma solidity 0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-
 import "hardhat/console.sol";
 
 contract CSZ is ERC20, Ownable {
@@ -14,7 +13,7 @@ contract CSZ is ERC20, Ownable {
     uint256 private _transactionFeePercent;
     uint256 private _transactionFeePercentOwner;
 
-    mapping(address => bool) whitelistAddresses;
+    mapping(address => bool) private whitelistAddresses;
 
     enum Functions {FEE, FEE_OWNER, FEE_DIST}
     uint256 private constant _TIMELOCK = 0 days;
@@ -39,7 +38,9 @@ contract CSZ is ERC20, Ownable {
 	uint256 public _pendingRewardsWalletFeePercent;
 	uint256 public _pendingLiquidityWalletFeePercent;
 
-    uint256 private _feeUpdateTimestamp;
+    event _pendingTransactionFeePercentEvent(uint256 _amount);
+    event _pendingTransactionFeePercentOwnerEvent(uint256 _amount);
+
 
     constructor(
 		address DevelopmentWallet,
@@ -47,9 +48,27 @@ contract CSZ is ERC20, Ownable {
 		address RewardsWallet,
 		address LiquidityWallet
     ) ERC20("CoinStarz", "CSZ") {
+
         _mint(_msgSender(), 100000000);
 
 		_transactionFeePercent = 15e16; // 15%
+
+        require(
+            DevelopmentWallet != address(0),
+            "CSZ: DevelopmentAddress cannot be zero address"
+	    );
+        require(
+            MarketingWallet != address(0),
+            "CSZ: MarketingWallet cannot be zero address"
+        );
+        require(
+                RewardsWallet != address(0),
+                "CSZ: RewardsWallet cannot be zero address"
+        );
+        require(
+            LiquidityWallet != address(0),
+            "CSZ: LiquidityWallet cannot be zero address"
+        );
 
 		_DevelopmentWallet = DevelopmentWallet;
 		_MarketingWallet = MarketingWallet;
@@ -235,7 +254,10 @@ contract CSZ is ERC20, Ownable {
             "Current Timelock is already initialized with a value"
         );
 
+
+
         _pendingTransactionFeePercent = fee;
+        emit _pendingTransactionFeePercentEvent(_pendingTransactionFeePercent);
 
         currentTimelocks[Functions.FEE] = block.timestamp + _TIMELOCK;
         hasPendingFee[Functions.FEE] = true;
@@ -255,7 +277,9 @@ contract CSZ is ERC20, Ownable {
             "Current Timelock is already initialized with a value"
         );
 
+
         _pendingTransactionFeePercentOwner = fee;
+        emit _pendingTransactionFeePercentOwnerEvent(_pendingTransactionFeePercentOwner);
 
         currentTimelocks[Functions.FEE_OWNER] = block.timestamp + _TIMELOCK;
         hasPendingFee[Functions.FEE_OWNER] = true;
@@ -272,11 +296,11 @@ contract CSZ is ERC20, Ownable {
 				.add(MarketingWalletFeePercent)
 				.add(RewardsWalletFeePercent)
 				.add(LiquidityWalletFeePercent) == 1e18,
-            "CSZ: The sum of distribuition should be 100%"
+            "CSZ: The sum of distribution should be 100%"
         );
         require(
             !hasPendingFee[Functions.FEE_DIST],
-            "CSZ: There is a pending dsitribution fee change already."
+            "CSZ: There is a pending distribution fee change already."
         );
         require(
             currentTimelocks[Functions.FEE_DIST] == 0,
