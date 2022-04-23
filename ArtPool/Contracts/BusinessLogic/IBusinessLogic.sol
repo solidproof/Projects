@@ -1,15 +1,14 @@
 // SPDX-License-Identifier: UNLICENSED
 
-pragma solidity ^0.8.4;
+pragma solidity 0.8.4;
 
-abstract contract BusinessLogic {
-
+interface IBusinessLogic {
   function checkMintAllowed(
     uint256 dropStart,
     uint256 dropEnd,
     address buyer,
     uint256 price,
-    uint256 msgValue
-  ) public view virtual;
-
+    uint256 msgValue,
+    uint256 minMembershipTier
+  ) external view returns (string memory);
 }
