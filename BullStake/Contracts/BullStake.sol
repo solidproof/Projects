@@ -75,11 +75,15 @@ contract BullStake is Ownable {
 	uint256 public totalClaimed;
 
     bool public launched;
+    bool public reinvestAllowed;
+    bool public newReferralsAllowed;
 
+	event UpdateReinvestAllowedStatus(bool isAllowed);
+	event UpdateNewReferralsAllowedStatus(bool isAllowed);
 	event Claimed(address user, uint256 amount);
 	event NewDeposit(address user, uint256 planIdx, uint256 amount);
 	event ForceWithdrawPercentUpdated(uint256 oldValue, uint256 newValue);
-	event ForcewithdrawalWithdrawTaxPercentUpdated(uint256 oldValue, uint256 newValue);
+	event ForceWithdrawalWithdrawTaxPercentUpdated(uint256 oldValue, uint256 newValue);
 
 	constructor(
         address payable marketingWallet_,
@@ -117,6 +121,7 @@ contract BullStake is Ownable {
 		plans.push( TPlan(20, 0, 10, 10, 10, 100, 3660) );
 		plans.push( TPlan(30, 0, 0, 0, 10, 100, 9062) );
 
+	newReferralsAllowed = true;
 	}
 
 	function setWallets(
@@ -148,6 +153,22 @@ contract BullStake is Ownable {
 		_cbWallet = cbWallet_;
 	}
 
+	function setReinvestAllowedStatus(bool status)
+		external
+		onlyOwner()
+	{
+		reinvestAllowed = status;
+		emit UpdateReinvestAllowedStatus(status);
+	}
+
+	function setNewReferralAllowedStatus(bool status)
+		external
+		onlyOwner()
+	{
+		newReferralsAllowed = status;
+		emit UpdateNewReferralsAllowedStatus(status);
+	}
+
 	function launch()
 		external
 		onlyOwner()
@@ -165,7 +186,8 @@ contract BullStake is Ownable {
 
 		_transferTo(msg.value, DEPOSIT_TAX_PERCENT, _tenpercentWallet);
 
-        _setUserReferrer(msg.sender, _referrer);
+		if(newReferralsAllowed)
+			_setUserReferrer(msg.sender, _referrer);
 
         _allocateReferralRewards(msg.sender, msg.value);
 
@@ -277,6 +299,8 @@ contract BullStake is Ownable {
 	function reinvest(uint256 depIdx, uint256 reinvestAmount)
 		public
 	{
+		require(reinvestAllowed, "BullStake::Reinvest is deactivated");
+
 		TUser storage user = users[msg.sender];
 		uint256 planIdx = user.deposits[depIdx].planIdx;
 
@@ -642,7 +666,7 @@ contract BullStake is Ownable {
 		require(100 <= percent && percent <= 500, "New percent must be between 10% - 50%");
 		uint256 old = forcewithdrawalWithdrawTaxPercent;
 		forcewithdrawalWithdrawTaxPercent = percent;
-		emit ForcewithdrawalWithdrawTaxPercentUpdated(old, percent);
+		emit ForceWithdrawalWithdrawTaxPercentUpdated(old, percent);
 	}
 
 	receive() external payable {}
