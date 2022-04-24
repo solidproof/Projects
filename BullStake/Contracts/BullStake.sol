@@ -111,12 +111,12 @@ contract BullStake is Ownable {
 		_twentypercentWallet = twentypercentWallet_;
 		_cbWallet = cbWallet_;
 
-		plans.push( TPlan(7, 0, 30, 30, 40, 100, 1300) );
+		plans.push( TPlan(7, 0, 30, 30, 40, 100, 0) );
 		plans.push( TPlan(10, 0, 30, 30, 40, 100, 1300) );
 		plans.push( TPlan(20, 0, 30, 30, 40, 100, 2000) );
 		plans.push( TPlan(30, 0, 30, 30, 40, 100, 2520) );
 
-		plans.push( TPlan(7, 0, 30, 40, 30, 100, 1590) );
+		plans.push( TPlan(7, 0, 30, 40, 30, 100, 0) );
 		plans.push( TPlan(10, 0, 30, 30, 40, 100, 1590) );
 		plans.push( TPlan(20, 0, 10, 10, 10, 100, 3660) );
 		plans.push( TPlan(30, 0, 0, 0, 10, 100, 9062) );
