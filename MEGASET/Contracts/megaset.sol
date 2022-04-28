@@ -1,4 +1,4 @@
-pragma solidity ^0.8.0;
+pragma solidity 0.8.13;
 // SPDX-License-Identifier: UNLICENSED
 
 /**
@@ -509,16 +509,15 @@ contract MSET is IBEP20, Ownable, IBEP20Metadata  {
      * - the caller must have a balance of at least `amount`.
      */
     function transfer(address to, uint256 amount) public virtual override returns (bool) {
-        address owner = _msgSender();
-        _transfer(owner, to, amount);
+        _transfer(_msgSender(), to, amount);
         return true;
     }
 
     /**
      * @dev See {IERC20-allowance}.
      */
-    function allowance(address owner, address spender) public view virtual override returns (uint256) {
-        return _allowances[owner][spender];
+    function allowance(address owner_, address spender) public view virtual override returns (uint256) {
+        return _allowances[owner_][spender];
     }
 
     /**
@@ -532,8 +531,7 @@ contract MSET is IBEP20, Ownable, IBEP20Metadata  {
      * - `spender` cannot be the zero address.
      */
     function approve(address spender, uint256 amount) public virtual override returns (bool) {
-        address owner = _msgSender();
-        _approve(owner, spender, amount);
+        _approve(_msgSender(), spender, amount);
         return true;
     }
 
@@ -577,8 +575,7 @@ contract MSET is IBEP20, Ownable, IBEP20Metadata  {
      * - `spender` cannot be the zero address.
      */
     function increaseAllowance(address spender, uint256 addedValue) public virtual returns (bool) {
-        address owner = _msgSender();
-        _approve(owner, spender, allowance(owner, spender) + addedValue);
+        _approve(_msgSender(), spender, allowance(_msgSender(), spender) + addedValue);
         return true;
     }
 
@@ -597,11 +594,10 @@ contract MSET is IBEP20, Ownable, IBEP20Metadata  {
      * `subtractedValue`.
      */
     function decreaseAllowance(address spender, uint256 subtractedValue) public virtual returns (bool) {
-        address owner = _msgSender();
-        uint256 currentAllowance = allowance(owner, spender);
+        uint256 currentAllowance = allowance(_msgSender(), spender);
         require(currentAllowance >= subtractedValue, "ERC20: decreased allowance below zero");
         unchecked {
-            _approve(owner, spender, currentAllowance - subtractedValue);
+            _approve(_msgSender(), spender, currentAllowance - subtractedValue);
         }
 
         return true;
@@ -699,15 +695,15 @@ contract MSET is IBEP20, Ownable, IBEP20Metadata  {
      * - `spender` cannot be the zero address.
      */
     function _approve(
-        address owner,
+        address owner_a,
         address spender,
         uint256 amount
     ) internal virtual {
-        require(owner != address(0), "ERC20: approve from the zero address");
+        require(owner_a != address(0), "ERC20: approve from the zero address");
         require(spender != address(0), "ERC20: approve to the zero address");
 
-        _allowances[owner][spender] = amount;
-        emit Approval(owner, spender, amount);
+        _allowances[owner_a][spender] = amount;
+        emit Approval(owner_a, spender, amount);
     }
 
     /**
@@ -719,14 +715,14 @@ contract MSET is IBEP20, Ownable, IBEP20Metadata  {
      * Might emit an {Approval} event.
      */
     function _spendAllowance(
-        address owner,
+        address owner_s,
         address spender,
         uint256 amount
     ) internal virtual {
-        uint256 currentAllowance = allowance(owner, spender);
+        uint256 currentAllowance = allowance(owner_s, spender);
         if (currentAllowance != type(uint256).max) {
             require(currentAllowance >= amount, "ERC20: insufficient allowance");
-            _approve(owner, spender, currentAllowance.sub(amount));
+            _approve(owner_s, spender, currentAllowance.sub(amount));
         }
     }
 
@@ -778,21 +774,23 @@ contract MSET is IBEP20, Ownable, IBEP20Metadata  {
     }
 
 
-    address private presale1Add = 0x4fA0964B99452B3C23F0A2BEA248409cF3c62730;
-    address private presale2Add = 0xeb24328579E1C618d9fe8C8070D12d5faD26dB58;
-    address private presale3Add = 0xd694F76db0523899638d259F0cB1b34B26af64fb;
-    address private publicSale = 0x67501083Cc6165d2AcCe90d97227103453Fd221c;
-    address private liquidity = 0x1ec5674eCEf7B8122535c31CE81967e9F04b0fB3;
+    address constant private presale1Add = 0x4fA0964B99452B3C23F0A2BEA248409cF3c62730;
+    address constant private presale2Add = 0xeb24328579E1C618d9fe8C8070D12d5faD26dB58;
+    address constant private presale3Add = 0xd694F76db0523899638d259F0cB1b34B26af64fb;
+    address constant private publicSale = 0x67501083Cc6165d2AcCe90d97227103453Fd221c;
+    address constant private liquidity = 0x1ec5674eCEf7B8122535c31CE81967e9F04b0fB3;
     uint256 private liquidityT = 200000000 * 10 ** (decimals());
-    address private cexListing = 0x032013BCB45B4648FCe54F11177a2A246f67826C;
-    address private team = 0x9E457bb588DB3A762140E98a51C04992a8EDCC08;
+    address constant private cexListing = 0x032013BCB45B4648FCe54F11177a2A246f67826C;
+    address constant private team = 0x9E457bb588DB3A762140E98a51C04992a8EDCC08;
     uint256 private teamT = 100000000 * 10 ** (decimals());
-    address private advisors = 0x6B0b76B270e08CA6c36c9523c784B593442fbBd2;
+    address constant private advisors = 0x6B0b76B270e08CA6c36c9523c784B593442fbBd2;
     uint256 private advisorsT = 100000000 * 10 ** (decimals());
-    address private rewardsEcosystem = 0x438dD079aB86ac54B458a9aCe1be41513D19cf58;
-    address private marketing = 0x200ef1688AFB4AB362a4c4BF9BDb5e273e2FBd31;
+    address constant private rewardsEcosystem = 0x438dD079aB86ac54B458a9aCe1be41513D19cf58;
+    uint256 private rewardEcosystemT = 7600000000 * 10 ** (decimals());
+    address constant private marketing = 0x200ef1688AFB4AB362a4c4BF9BDb5e273e2FBd31;
     uint256 private marketingT = 200000000 * 10 ** (decimals());
 
+    // this function will allocate the tokens to the specified internal accounts
     function allocateTokens() internal {
         mintNew_(presale1Add, 100000000 * 10 ** (decimals()));
         mintNew_(presale2Add, 100000000 * 10 ** (decimals()));
@@ -802,31 +800,39 @@ contract MSET is IBEP20, Ownable, IBEP20Metadata  {
         mintNew_(cexListing, 1000000000 * 10 ** (decimals()));
         mintNew_(team, teamT);
         mintNew_(advisors, advisorsT);
-        mintNew_(rewardsEcosystem, 7600000000 * 10 ** (decimals()));
+        mintNew_(rewardsEcosystem, rewardEcosystemT);
         mintNew_(marketing, marketingT);
     }
 
+    // this function will mint the tokens internally
     function mintNew_(address account_, uint256 amount_) private{
         _balances[account_] = _balances[account_].add(amount_);
         emit Transfer(address(0), account_, amount_);
     }
 
+    // this set up vesting for internal accounts
     function setupInternalVesting() private {
-        setupVesting(0                     , 7889400 /*3 months*/, liquidityT.div(4), liquidityT, liquidity);
-        setupVesting(31557600 /*12 months*/, 2629800 /*1 months*/, teamT.div(48), teamT, team);
-        setupVesting(31557600 /*12 months*/, 2629800 /*1 months*/, advisorsT.div(48), advisorsT, advisors);
-        setupVesting(31557600 /*12 months*/, 2629800 /*1 months*/, marketingT.div(36), marketingT, marketing);
+        setupVesting(0                     , 7776000 /*3 months*/, liquidityT.div(4), liquidityT, liquidity);
+        setupVesting(31536000 /*12 months*/, 2629800 /*1 months*/, teamT.div(48), teamT, team);
+        setupVesting(31536000 /*12 months*/, 2629800 /*1 months*/, advisorsT.div(48), advisorsT, advisors);
+        setupVesting(31536000 /*12 months*/, 2629800 /*1 months*/, marketingT.div(36), marketingT, marketing);
+        setupVesting(18403200 /*7 months*/, 2629800 /*1 months*/, rewardEcosystemT.div(60), rewardEcosystemT, rewardsEcosystem);
     }
- 
 
-    uint256 public publicSaleDate;
 
+    uint256 public publicSaleDate; // the date of public sale, after which vesting release will start
+
+    // users can use this function to burn tokens from their account
     function burn(uint256 amount) external returns(bool){
         _burn(_msgSender(), amount);
         return true;
     }
 
+    event publicSaleDateUpdated(uint256 _oldDate, uint256 _newDate);
+    // owner will use this function to set the public sale date
     function setPublicSaleDate(uint256 publicSaleD_) external onlyOwner{
+        require(publicSaleD_ > block.timestamp, "Invalid date");
+        emit publicSaleDateUpdated(publicSaleDate, publicSaleD_);
         publicSaleDate = publicSaleD_;
     }
 
@@ -838,14 +844,14 @@ contract MSET is IBEP20, Ownable, IBEP20Metadata  {
         uint256 lastReleaseMonth;
     }
 
-    mapping(address => VestingSchedule) internal locking;
-    mapping(address => VestingSchedule) internal presale1Locking;
-    mapping(address => VestingSchedule) internal presale2Locking;
-    mapping(address => VestingSchedule) internal presale3Locking;
+    mapping(address => VestingSchedule) internal locking; // saves vesting of internal accounts
+    mapping(address => VestingSchedule) internal presale1Locking; // saves vesting of presale 1 accounts
+    mapping(address => VestingSchedule) internal presale2Locking; // saves vesting of presale 2 accounts
+    mapping(address => VestingSchedule) internal presale3Locking; // saves vesting of presale 3 accounts
 
-    address presale1CAddress;
-    address presale2CAddress;
-    address presale3CAddress;
+    address private presale1CAddress;
+    address private presale2CAddress;
+    address private presale3CAddress;
 
     modifier onlyPreSale1C{
         require(_msgSender() == presale1CAddress, "UnAuthorized");
@@ -862,6 +868,7 @@ contract MSET is IBEP20, Ownable, IBEP20Metadata  {
         _;
     }
 
+    // internal function to set vesting from internal accounts
     function setupVesting(uint256 cliff_, uint256 vestingT_, uint256 vestingA_, uint256 totalVesting_, address account_) private{
         locking[account_].cliff = cliff_;
         locking[account_].vestingTime = vestingT_;
@@ -869,62 +876,112 @@ contract MSET is IBEP20, Ownable, IBEP20Metadata  {
         locking[account_].vestingAmtLeft = totalVesting_;
     }
 
+    // sets vesting of presale 1 accounts
+    // only callable by presale 1 contract
     function setupP1Vesting(uint256 cliff_, uint256 vestingT_, uint256 vestingA_, uint256 totalVesting_, address account_) external onlyPreSale1C{
         presale1Locking[account_].cliff = cliff_;
         presale1Locking[account_].vestingTime = vestingT_;
-        presale1Locking[account_].vestingAmt = vestingA_;
-        presale1Locking[account_].vestingAmtLeft = totalVesting_;
+        presale1Locking[account_].vestingAmt = presale1Locking[account_].vestingAmt.add(vestingA_);
+        presale1Locking[account_].vestingAmtLeft = presale1Locking[account_].vestingAmtLeft.add(totalVesting_);
     }
-
+    // sets vesting of presale 2 accounts
+    // only callable by presale 2 contract
     function setupP2Vesting(uint256 cliff_, uint256 vestingT_, uint256 vestingA_, uint256 totalVesting_, address account_) external onlyPreSale2C{
         presale2Locking[account_].cliff = cliff_;
         presale2Locking[account_].vestingTime = vestingT_;
-        presale2Locking[account_].vestingAmt = vestingA_;
-        presale2Locking[account_].vestingAmtLeft = totalVesting_;
+        presale2Locking[account_].vestingAmt = presale2Locking[account_].vestingAmt.add(vestingA_);
+        presale2Locking[account_].vestingAmtLeft = presale2Locking[account_].vestingAmtLeft.add(totalVesting_);
     }
 
+    // sets vesting of presale 3 accounts
+    // only callable by presale 3 contract
     function setupP3Vesting(uint256 cliff_, uint256 vestingT_, uint256 vestingA_, uint256 totalVesting_, address account_) external onlyPreSale3C{
         presale3Locking[account_].cliff = cliff_;
         presale3Locking[account_].vestingTime = vestingT_;
-        presale3Locking[account_].vestingAmt = vestingA_;
-        presale3Locking[account_].vestingAmtLeft = totalVesting_;
+        presale3Locking[account_].vestingAmt = presale3Locking[account_].vestingAmt.add(vestingA_);
+        presale3Locking[account_].vestingAmtLeft = presale3Locking[account_].vestingAmtLeft.add(totalVesting_);
     }
 
-    function checkLocked(address account_) private view returns(uint256) {
+    // this function will be called by UI / Users to get the locked tokens value
+    function lockedTokens(address account_) public view returns(uint256){
         uint256 locked = 0;
+        uint256 amtL__;
+        uint256 tP__;
 
         // the account is from internal team
-        if(locking[account_].vestingAmtLeft > 0){ 
+        if(locking[account_].vestingAmtLeft > 0){
             // update vesting
-            updateVesting_(locking[account_], publicSaleDate);
-            locked = locked.add(locking[account_].vestingAmtLeft);
-        }
-        
-        // the account is from presale 1 
-        if(presale1Locking[account_].vestingAmtLeft > 0){ 
-            // update vesting
-            updateVesting_(presale1Locking[account_], publicSaleDate);
-            locked = locked.add(presale1Locking[account_].vestingAmtLeft);
+            (amtL__, tP__) = updateVesting_(locking[account_], publicSaleDate);
+            locked = locked.add(amtL__);
         }
 
-        // the account is from presale 2 
-        if(presale2Locking[account_].vestingAmtLeft > 0){ 
+        // the account is from presale 1
+        if(presale1Locking[account_].vestingAmtLeft > 0){
             // update vesting
-            updateVesting_(presale2Locking[account_], publicSaleDate);
-            locked = locked.add(presale2Locking[account_].vestingAmtLeft);
+            (amtL__, tP__) = updateVesting_(presale1Locking[account_], publicSaleDate);
+            locked = locked.add(amtL__);
         }
 
-        // the account is from presale 3 
-        if(presale3Locking[account_].vestingAmtLeft > 0){ 
+        // the account is from presale 2
+        if(presale2Locking[account_].vestingAmtLeft > 0){
             // update vesting
-            updateVesting_(presale3Locking[account_], publicSaleDate);
-            locked = locked.add(presale3Locking[account_].vestingAmtLeft);
+            (amtL__, tP__) = updateVesting_(presale2Locking[account_], publicSaleDate);
+            locked = locked.add(amtL__);
+        }
+
+        // the account is from presale 3
+        if(presale3Locking[account_].vestingAmtLeft > 0){
+            // update vesting
+            (amtL__, tP__) = updateVesting_(presale3Locking[account_], publicSaleDate);
+            locked = locked.add(amtL__);
         }
 
         return locked;
     }
 
-    function updateVesting_(VestingSchedule memory vestingAcc, uint256 publicSaleDate_) private view{
+    // checks the locked tokens in account
+    function checkLocked(address account_) private view returns(uint256) {
+        uint256 locked = 0;
+        uint256 amtL;
+        uint256 tP;
+        // the account is from internal team
+        if(locking[account_].vestingAmtLeft > 0){
+            // update vesting
+            (amtL, tP) = updateVesting_(locking[account_], publicSaleDate);
+            update(locking[account_], amtL, tP);
+            locked = locked.add(amtL);
+
+        }
+
+        // the account is from presale 1
+        if(presale1Locking[account_].vestingAmtLeft > 0){
+            // update vesting
+            (amtL, tP) = updateVesting_(presale1Locking[account_], publicSaleDate);
+            update(presale1Locking[account_], amtL, tP);
+            locked = locked.add(amtL);
+        }
+
+        // the account is from presale 2
+        if(presale2Locking[account_].vestingAmtLeft > 0){
+            // update vesting
+            (amtL, tP) = updateVesting_(presale2Locking[account_], publicSaleDate);
+            update(presale2Locking[account_], amtL, tP);
+            locked = locked.add(amtL);
+        }
+
+        // the account is from presale 3
+        if(presale3Locking[account_].vestingAmtLeft > 0){
+            // update vesting
+            (amtL, tP) = updateVesting_(presale3Locking[account_], publicSaleDate);
+            update(presale3Locking[account_], amtL, tP);
+            locked = locked.add(amtL);
+        }
+
+        return locked;
+    }
+
+    // updates the locked tokens in account
+    function updateVesting_(VestingSchedule memory vestingAcc, uint256 publicSaleDate_) private view returns(uint256 amountL, uint256 timeP){
         if(vestingAcc.vestingAmtLeft > 0 && publicSaleDate_ != 0){
             uint256 cliffD_ = publicSaleDate_.add(vestingAcc.cliff);
             require(block.timestamp > cliffD_, "cliff period has not ended");
@@ -936,24 +993,43 @@ contract MSET is IBEP20, Ownable, IBEP20Metadata  {
             // cliff time has expired but first month after vesting has not reached
             // release the 0th period amount
 
-            vestingAcc.vestingAmtLeft = vestingAcc.vestingAmtLeft.sub(vestingAcc.vestingAmt.mul(vestingTPassed));
-            vestingAcc.lastReleaseMonth = vestingTPassed;
-            if(vestingAcc.vestingAmtLeft < vestingAcc.vestingAmt)
-                vestingAcc.vestingAmtLeft = 0;
+            uint256 amountL_ = vestingAcc.vestingAmtLeft.sub(vestingAcc.vestingAmt.mul(vestingTPassed));
+            uint256 timeP_ = vestingTPassed;
+            if(amountL_ < vestingAcc.vestingAmt)
+                amountL_ = 0;
+
+            return (amountL_, timeP_);
         }
     }
 
+    function update(VestingSchedule memory vestingAcc, uint256 amountL, uint256 timeP) private pure {
+        vestingAcc.vestingAmtLeft = amountL;
+        vestingAcc.lastReleaseMonth = timeP;
+    }
+
+    event Presale1AddressUpdated(address oldAddress, address newAddress);
+    event Presale2AddressUpdated(address oldAddress, address newAddress);
+    event Presale3AddressUpdated(address oldAddress, address newAddress);
+
+    // owner can set presale 1 address
     function setPresale1Address(address address_) external onlyOwner{
+        require(address_ != address(0), "Zero address not allowed");
+        emit Presale1AddressUpdated(presale1CAddress, address_);
         presale1CAddress = address_;
     }
 
+    // owner can set presale 2 address
     function setPresale2Address(address address_) external onlyOwner{
+        require(address_ != address(0), "Zero address not allowed");
+        emit Presale2AddressUpdated(presale2CAddress, address_);
         presale2CAddress = address_;
     }
 
+    // owner can set presale 3 address
     function setPresale3Address(address address_) external onlyOwner{
+        require(address_ != address(0), "Zero address not allowed");
+        emit Presale3AddressUpdated(presale3CAddress, address_);
         presale3CAddress = address_;
     }
 
 }
-
