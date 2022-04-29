@@ -1,28 +1,27 @@
-// SPDX-License-Identifier: Private License - Lameni
+// SPDX-License-Identifier: UNLICENSED
 
+pragma solidity 0.8.13;
 
-pragma solidity ^0.8.13;
-
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "./ERC20.sol";
 
 import "./IPancake.sol";
 import "./GasHelper.sol";
 import "./SwapHelper.sol";
 
 contract GnomeMines is GasHelper, ERC20 {
-  address constant DEAD = 0x000000000000000000000000000000000000dEaD;
-  address constant ZERO = 0x0000000000000000000000000000000000000000;
-  address constant WBNB = 0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c; // BSC WBNB
+  address constant private DEAD = 0x000000000000000000000000000000000000dEaD;
+  address constant private ZERO = 0x0000000000000000000000000000000000000000;
+  address constant private WBNB = 0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c; // BSC WBNB
 
-  string constant _name = "Gnome Mines Token";
-  string constant _symbol = "GMINES";
+  string constant private _nameToken = "Gnome Mines Token";
+  string constant private _symbolToken = "GMINES";
 
   string constant public url = "www.gnomemines.com";
   string constant public author = "Lameni";
 
   // Token Details
-  uint8 constant decimal = 18;
-  uint256 constant maxSupply = 100_000_000 * (10 ** decimal);
+  uint8 constant private decimal = 18;
+  uint256 constant private maxSupply = 100_000_000 * (10 ** decimal);
 
   // Wallets limits
   uint256 public _maxTxAmount = maxSupply;
@@ -32,7 +31,7 @@ contract GnomeMines is GasHelper, ERC20 {
   // Fees
   uint256 public feeAdministrationWallet = 300; // 3%
 
-  uint constant maxTotalFee = 1000;
+  uint constant private maxTotalFee = 1000;
   mapping(address => uint) public specialFeesByWallet;
 
   // Helpers
@@ -40,7 +39,6 @@ contract GnomeMines is GasHelper, ERC20 {
   bool private _noReentrancy = false;
 
   bool public pausedSwapAdmin = false;
-  bool private initialized = false;
 
   // Counters
   uint256 public accumulatedToAdmin;
@@ -55,7 +53,7 @@ contract GnomeMines is GasHelper, ERC20 {
   struct Receivers { address wallet; uint256 amount; }
   receive() external payable { }
 
-  constructor()ERC20(_name, _symbol) {
+  constructor()ERC20(_nameToken, _symbolToken) {
     PancakeRouter router = PancakeRouter(0x10ED43C718714eb63d5aA57B78B54704E256024E); // BSC
     liquidityPool = address(PancakeFactory(router.factory()).createPair(WBNB, address(this)));
 
@@ -91,8 +89,8 @@ contract GnomeMines is GasHelper, ERC20 {
   }
 
   // ----------------- Public Views -----------------
-  function name() public pure override returns (string memory) { return _name; }
-  function symbol() public pure override returns (string memory) { return _symbol; }
+  function name() public pure override returns (string memory) { return _nameToken; }
+  function symbol() public pure override returns (string memory) { return _symbolToken; }
   function getOwner() external view returns (address) { return owner(); }
   function decimals() public pure override returns (uint8) { return decimal; }
   function getFeeTotal() public view returns(uint256) { return feeAdministrationWallet; }
@@ -103,11 +101,17 @@ contract GnomeMines is GasHelper, ERC20 {
   // ----------------- Authorized Methods -----------------
 
   function enableToken() external isAdmin { pausedToken = false; }
-  function setLiquidityPool(address newPair) external isAdmin { liquidityPool = newPair; }
+  function setLiquidityPool(address newPair) external isAdmin {
+    require(newPair != address(0), "invalid new pair address");
+    liquidityPool = newPair;
+  }
   function setPausedSwapAdmin(bool state) external isAdmin { pausedSwapAdmin = state; }
 
   // ----------------- Wallets Settings -----------------
-  function setAdministrationWallet(address account) public isAdmin { administrationWallet = account; }
+  function setAdministrationWallet(address account) public isAdmin {
+    require(account != address(0), "adminWallet cannot be Zero");
+    administrationWallet = account;
+  }
 
   // ----------------- Fee Settings -----------------
   function setFeesOperational(uint256 administration) external isFinancial {
@@ -156,9 +160,9 @@ contract GnomeMines is GasHelper, ERC20 {
     // Initial Checks
     require(sender != address(0) && receiver != address(0), "transfer from the zero address");
     require(!pausedToken || isExemptOperatePausedToken(senderAttributes), "Token is paused");
-    require(amount <= _maxTxAmount || isExemptTxLimit(senderAttributes), "Excedded the maximum transaction limit");
+    require(amount <= _maxTxAmount || isExemptTxLimit(senderAttributes), "Exceeded the maximum transaction limit");
 
-    uint256 senderBalance = balanceOf(sender);
+    uint256 senderBalance = _balances[sender];
     require(senderBalance >= amount, "Transfer amount exceeds your balance");
     uint256 newSenderBalance = senderBalance - amount;
     _balances[sender] = newSenderBalance;
@@ -181,9 +185,9 @@ contract GnomeMines is GasHelper, ERC20 {
     if ((!pausedSwapAdmin) && !isExemptSwapMaker(senderAttributes)) autoSwap(sender, adminFee);
 
     // Update Recipent Balance
-    uint256 newRecipentBalance = balanceOf(receiver) + (amount - feeAmount);
-    _balances[receiver] = newRecipentBalance;
-    require(newRecipentBalance <= _maxAccountAmount || isExemptAmountLimit(receiverAttributes), "Excedded the maximum tokens an wallet can hold");
+    uint256 newRecipientBalance = _balances[receiver] + (amount - feeAmount);
+    _balances[receiver] = newRecipientBalance;
+    require(newRecipientBalance <= _maxAccountAmount || isExemptAmountLimit(receiverAttributes), "Exceeded the maximum tokens an wallet can hold");
 
     _noReentrancy = false;
     emit Transfer(sender, receiver, amount);
@@ -229,7 +233,7 @@ contract GnomeMines is GasHelper, ERC20 {
       accumulatedToAdmin += (incomingFeeTokenAmount * adminFee) / totalFee;
       if (pausedSwapAdmin) {
         address wallet = administrationWallet;
-        uint256 walletBalance = balanceOf(wallet) + accumulatedToAdmin;
+        uint256 walletBalance = _balances[wallet] + accumulatedToAdmin;
         _balances[wallet] = walletBalance;
         emit Transfer(sender, wallet, accumulatedToAdmin);
         accumulatedToAdmin = 0;

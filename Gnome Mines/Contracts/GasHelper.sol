@@ -1,6 +1,6 @@
-// SPDX-License-Identifier: Private License - Lameni
+// SPDX-License-Identifier: UNLICENSED
 
-pragma solidity ^0.8.13;
+pragma solidity 0.8.13;
 
 import "./AttributeMap.sol";
 
@@ -74,7 +74,7 @@ contract GasHelper is AttributeMap {
     if (failed) revert("Unable to swap Pair");
   }
 
-  // gas optimization on get balanceOf fron BEP20 or ERC20 token
+  // gas optimization on get balanceOf from BEP20 or ERC20 token
   function getTokenBalanceOf(address token, address holder) internal view returns (uint112 tokenBalance) {
     bool failed = false;
     assembly {

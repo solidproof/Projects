@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: MIT
 // OpenZeppelin Contracts v4.4.1 (token/ERC20/ERC20.sol)
+// Modified version to provide _balances as internal instead private
 
-pragma solidity ^0.8.0;
+pragma solidity 0.8.13;
 
-import "./IERC20.sol";
-import "./IERC20Metadata.sol";
-import "./Context.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import "@openzeppelin/contracts/utils/Context.sol";
 
 /**
  * @dev Implementation of the {IERC20} interface.

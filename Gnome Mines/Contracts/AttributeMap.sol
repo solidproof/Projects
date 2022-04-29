@@ -1,6 +1,6 @@
-// SPDX-License-Identifier: Private License - Lameni
+// SPDX-License-Identifier: UNLICENSED
 
-pragma solidity ^0.8.13;
+pragma solidity 0.8.13;
 
 import "./Authorized.sol";
 

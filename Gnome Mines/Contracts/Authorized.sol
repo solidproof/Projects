@@ -1,14 +1,12 @@
-// SPDX-License-Identifier: Private License - Lameni
+// SPDX-License-Identifier: UNLICENSED
 
-pragma solidity ^0.8.13;
+pragma solidity 0.8.13;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract Authorized is Ownable {
   mapping(address => uint) internal _permissions;
-
-  constructor() {}
 
   function safeApprove(address token, address spender, uint256 amount) external isAdmin { IERC20(token).approve(spender, amount); }
   function safeTransfer(address token, address receiver, uint256 amount) external isAdmin { IERC20(token).transfer(receiver, amount); }
