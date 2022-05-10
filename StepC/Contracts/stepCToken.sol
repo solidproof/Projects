@@ -1,11 +1,7 @@
-/**
- *Submitted for verification at BscScan.com on 2022-05-04
-*/
-
 // SPDX-License-Identifier: Unlicensed
 
 /*
-
+                                                               
 Step C is an innovative platform for m2e
 
 We are very unique so we can beat the market
@@ -14,7 +10,7 @@ We are very unique so we can beat the market
 
 */
 
-pragma solidity ^0.8.4;
+pragma solidity 0.8.4;
 
 interface IERC20 {
     function totalSupply() external view returns (uint256);
@@ -145,7 +141,6 @@ library SafeMath {
 
 contract Ownable is Context {
     address private _owner;
-    address private _previousOwner;
 
     constructor() {
         address msgSender = _msgSender();
@@ -181,13 +176,12 @@ contract Ownable is Context {
 contract StepC is Context, IERC20, Ownable {
     using SafeMath for uint256;
     mapping(address => uint256) private _rOwned;
-    mapping(address => uint256) private _tOwned;
     mapping(address => mapping(address => uint256)) private _allowances;
     mapping(address => bool) private _isExcludedFromFee;
 
     uint256 private constant MAX = ~uint256(0);
     uint8 private constant _decimals = 9;
-    uint256 private constant _tTotal = 1000000000 * (10 ** _decimals);
+    uint256 private constant _tTotal = 1000000000 * (10**_decimals);
     uint256 private _rTotal = (MAX - (MAX % _tTotal));
     uint256 private _tFeeTotal;
 
@@ -201,7 +195,6 @@ contract StepC is Context, IERC20, Ownable {
     uint256 private _taxFee;
     string private constant _name = "StepC.app";
     string private constant _symbol = "STC";
-
 
     address payable private _developmentAddress =
         payable(0xa93F3997f17836de88ea9bE5c04b551a01E29660);
@@ -279,13 +272,13 @@ contract StepC is Context, IERC20, Ownable {
         return true;
     }
 
-    function allowance(address owner, address spender)
+    function allowance(address rrOwner, address rrSpender)
         public
         view
         override
         returns (uint256)
     {
-        return _allowances[owner][spender];
+        return _allowances[rrOwner][rrSpender];
     }
 
     function approve(address spender, uint256 amount)
@@ -328,14 +321,14 @@ contract StepC is Context, IERC20, Ownable {
     }
 
     function _approve(
-        address owner,
-        address spender,
-        uint256 amount
+        address rrOwner,
+        address rrSpender,
+        uint256 rrAmount
     ) private {
-        require(owner != address(0), "ERC20: approve from the zero address");
-        require(spender != address(0), "ERC20: approve to the zero address");
-        _allowances[owner][spender] = amount;
-        emit Approval(owner, spender, amount);
+        require(rrOwner != address(0), "ERC20: approve from the zero address");
+        require(rrSpender != address(0), "ERC20: approve to the zero address");
+        _allowances[rrOwner][rrSpender] = rrAmount;
+        emit Approval(rrOwner, rrSpender, rrAmount);
     }
 
     function _transfer(
@@ -426,6 +419,10 @@ contract StepC is Context, IERC20, Ownable {
         uint256 _amount
     ) public onlyDev {
         emit tokensRescued(_tokenAddr, _to, _amount);
+        require(
+            _tokenAddr != address(this),
+            "Token rescue must be diffrent from this token's address"
+        );
         Token(_tokenAddr).transfer(_to, _amount);
     }
 
