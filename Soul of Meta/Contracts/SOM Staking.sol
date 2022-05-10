@@ -25,9 +25,9 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
     uint256 public lastUpdateTime;
     uint256 public rewardPerTokenStored;
     // unstaking possible after 30 days
-    uint public constant cliffTime = 180;
+    uint public constant cliffTime = 30 days;
 
-    address constant penaltyWallet = 0x916340138a2707aD8b9749DF1522f5D5DE6CCE58;
+    address constant penaltyWallet = 0x6572325374374629686aD44FBdec596A0C279a61;
 
     mapping(address => uint256) public userRewardPerTokenPaid;
     mapping(address => uint256) public rewards;
@@ -119,9 +119,9 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
 
     function withdraw(uint256 amount) public virtual nonReentrant {
         updateReward(msg.sender);
-        require(block.timestamp.sub(stakingStartTime[msg.sender]) > cliffTime,"You recently staked, please wait before withdrawing.");
+        require(block.timestamp.sub(stakingStartTime[msg.sender]) > cliffTime,"Please Wait, You are not eligible to unstake until 1 Month after staking");
         require(amount > 0, "Staking: cannot withdraw 0");
-        require(amount <= _balances[msg.sender], "Staking: cannot withdraw more than staked");
+        require(amount <= _balances[msg.sender], "Staking: You cannot withdraw more than staked");
         _totalSupply = _totalSupply.sub(amount);
         _balances[msg.sender] = _balances[msg.sender].sub(amount);
         stakingToken.transfer(msg.sender, amount);
@@ -133,7 +133,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         uint256 reward;
         uint fee;
         uint amountAfterFee;
-        if(block.timestamp > stakingStartTime[msg.sender] + 180 && block.timestamp < stakingStartTime[msg.sender] + 301){
+        if(block.timestamp > stakingStartTime[msg.sender] + 30 days && block.timestamp < stakingStartTime[msg.sender] + 61 days){
             reward = rewards[msg.sender];
             if(reward > 0) {
                 rewards[msg.sender] = 0;
@@ -141,7 +141,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
                 emit RewardPaid(msg.sender, reward);
             }
         }
-        if(block.timestamp > stakingStartTime[msg.sender] + 300 && block.timestamp < stakingStartTime[msg.sender] + 451){
+        if(block.timestamp > stakingStartTime[msg.sender] + 60 days && block.timestamp < stakingStartTime[msg.sender] + 91 days){
             reward = rewards[msg.sender];
             if(reward > 0) {
                 fee = reward.mul(800).div(1e4);
@@ -152,7 +152,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
                 emit RewardPaid(msg.sender, reward);
             }
         }
-        if(block.timestamp > stakingStartTime[msg.sender] + 450 && block.timestamp < stakingStartTime[msg.sender] + 601){
+        if(block.timestamp > stakingStartTime[msg.sender] + 90 days && block.timestamp < stakingStartTime[msg.sender] + 121 days){
             reward = rewards[msg.sender];
             if(reward > 0) {
                 fee = reward.mul(600).div(1e4);
@@ -163,7 +163,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
                 emit RewardPaid(msg.sender, reward);
             }
         }
-        if(block.timestamp > stakingStartTime[msg.sender] + 600 && block.timestamp < stakingStartTime[msg.sender] + 851){
+        if(block.timestamp > stakingStartTime[msg.sender] + 120 days && block.timestamp < stakingStartTime[msg.sender] + 151 days){
             reward = rewards[msg.sender];
             if(reward > 0) {
                 fee = reward.mul(400).div(1e4);
@@ -174,7 +174,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
                 emit RewardPaid(msg.sender, reward);
             }
         }
-        if(block.timestamp > stakingStartTime[msg.sender] + 850){
+        if(block.timestamp > stakingStartTime[msg.sender] + 150 days){
             reward = rewards[msg.sender];
             if (reward > 0) {
                 rewards[msg.sender] = 0;
@@ -197,12 +197,6 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         rewardRate = rewardAmount.div(rewardDuration);
         lastUpdateTime = block.timestamp;
         emit RewardAdded(rewardAmount);
-    }
-
-    // Added to support recovering to stuck tokens, even reward token in case emergency. only owner
-    function recoverERC20(address _token, uint256 _amount) external onlyOwner {
-        IERC20(_token).transfer(owner(), _amount);
-        emit Recovered(_token, _amount);
     }
 
     function pause() public onlyOwner {
@@ -237,6 +231,5 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
     event Staked(address indexed user, uint256 amount);
     event Withdrawn(address indexed user, uint256 amount);
     event RewardPaid(address indexed user, uint256 reward);
-    event Recovered(address token, uint256 amount);
     event CapChange(uint256 oldCap, uint256 newCap);
 }
