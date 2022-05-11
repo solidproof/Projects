@@ -30,9 +30,9 @@ contract TransferFee {
     )
     internal
     {
-        require(buyFee_ <= DEMI, "TransferFee: fee must be less or equal 100%");
-        require(sellFee_ <= DEMI, "TransferFee: fee must be less or equal 100%");
-        require(normalFee_ <= DEMI, "TransferFee: fee must be less or equal 100%");
+        require(buyFee_ <= 1, "TransferFee: fee must be less or equal 10%");
+        require(sellFee_ <= 10, "TransferFee: fee must be less or equal 20%");
+        require(normalFee_ <= 2, "TransferFee: fee must be less or equal 2%");
         _transferFee.to = to_;
         _transferFee.buy = buyFee_;
         _transferFee.sell = sellFee_;
@@ -48,10 +48,10 @@ contract TransferFee {
     internal
     returns (uint)
     {
-        if (DexPair._isPair(recipient_)) {  
+        if (DexPair._isPair(recipient_)) {
             return amount_ * _transferFee.sell / DEMI;
         } else {
-            if (DexPair._isPair(sender_)) { 
+            if (DexPair._isPair(sender_)) {
                 return amount_ * _transferFee.buy / DEMI;
             } else {
                 return amount_ * _transferFee.normal / DEMI;
