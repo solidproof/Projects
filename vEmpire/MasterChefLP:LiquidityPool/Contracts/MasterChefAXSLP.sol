@@ -16,7 +16,7 @@ import "../common/Ownable.sol";
 // distributed and the community can show to govern itself.
 //
 // Have fun reading it. Hopefully it's bug-free. God bless.
-contract MasterChefLP is Ownable {
+contract MasterChefAXSLP is Ownable {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
@@ -25,6 +25,7 @@ contract MasterChefLP is Ownable {
         uint256 amount;     // How many LP tokens the user has provided.
         uint256 rewardDebt; // Reward debt. See explanation below.
         uint256 rewardLPDebt; // Reward debt in LP.
+        uint256 rewardSLPDebt;  // Reward debt in SLP
         //
         // We do some fancy math here. Basically, any point in time, the amount of VEMPs
         // entitled to a user but is pending to be distributed is:
@@ -41,6 +42,7 @@ contract MasterChefLP is Ownable {
     // Info of each pool.
     struct PoolInfo {
         IERC20 lpToken;           // Address of LP token contract.
+        IERC20 slpToken;
         uint256 allocPoint;       // How many allocation points assigned to this pool. VEMPs to distribute per block.
         uint256 lastRewardBlock;  // Last block number that VEMPs distribution occurs.
         uint256 accVEMPPerShare; // Accumulated VEMPs per share, times 1e12. See below.
@@ -48,6 +50,11 @@ contract MasterChefLP is Ownable {
         uint256 lastTotalLPReward; // last total rewards
         uint256 lastLPRewardBalance; // last LP rewards tokens
         uint256 totalLPReward; // total LP rewards tokens
+
+        uint256 accSLPPerShare; // Accumulated SLP per share, times 1e12. See below.
+        uint256 lastTotalSLPReward; // last total rewards in SLP
+        uint256 lastSLPRewardBalance; // lastest last SLP rewards tokens that were distributed
+        uint256 totalSLPReward; // total SLP rewards tokens distributed till now by admin
     }
 
     // Info of each user.
@@ -58,6 +65,8 @@ contract MasterChefLP is Ownable {
 
     // The VEMP TOKEN!
     IERC20 public VEMP;
+    // SLP TOKEN!
+    IERC20 public SLP;
     // admin address.
     address public adminaddr;
     // VEMP tokens created per block.
@@ -104,6 +113,7 @@ contract MasterChefLP is Ownable {
 
     function initialize(
         IERC20 _VEMP,
+        IERC20 _SLP,
         IERC20 _lpToken,
         address _adminaddr,
         uint256 _VEMPPerBlock,
@@ -114,9 +124,11 @@ contract MasterChefLP is Ownable {
         require(address(_VEMP) != address(0), "Invalid VEMP address");
         require(address(_lpToken) != address(0), "Invalid lpToken address");
         require(address(_adminaddr) != address(0), "Invalid admin address");
+        require(address(_SLP) != address(0), "Invalid SLP address");
 
         Ownable.init(_adminaddr);
         VEMP = _VEMP;
+        SLP = _SLP;
         adminaddr = _adminaddr;
         VEMPPerBlock = _VEMPPerBlock;
         startBlock = _startBlock;
@@ -129,7 +141,9 @@ contract MasterChefLP is Ownable {
 
         uint256 lastRewardBlock = block.number > startBlock ? block.number : startBlock;
         totalAllocPoint = totalAllocPoint.add(100);
+
         poolInfo.lpToken = _lpToken;
+        poolInfo.slpToken = _SLP;
         poolInfo.allocPoint = 100;
         poolInfo.lastRewardBlock = lastRewardBlock;
         poolInfo.accVEMPPerShare = 0;
@@ -137,6 +151,11 @@ contract MasterChefLP is Ownable {
         poolInfo.lastTotalLPReward = 0;
         poolInfo.lastLPRewardBalance = 0;
         poolInfo.totalLPReward = 0;
+
+        poolInfo.accSLPPerShare = 0;
+        poolInfo.lastTotalSLPReward = 0;
+        poolInfo.lastSLPRewardBalance = 0;
+        poolInfo.totalSLPReward = 0;
     }
 
     function updateVempLockAmount(uint256 _vempLockAmount) public onlyOwner {
@@ -202,6 +221,20 @@ contract MasterChefLP is Ownable {
         return user.amount.mul(accLPPerShare).div(1e12).sub(user.rewardLPDebt);
     }
 
+    // View function to see pending SLP on frontend.
+    function pendingSLP(address _user) external view returns (uint256) {
+        PoolInfo storage pool = poolInfo;
+        UserInfo storage user = userInfo[_user];
+        uint256 accSLPPerShare = pool.accSLPPerShare;
+        uint256 lpSupply = totalLPStaked;
+        if (block.number > pool.lastRewardBlock && lpSupply != 0) {
+            uint256 rewardBalance = pool.slpToken.balanceOf(address(this));
+            uint256 _totalReward = rewardBalance.sub(pool.lastSLPRewardBalance);
+            accSLPPerShare = accSLPPerShare.add(_totalReward.mul(1e30).div(lpSupply));
+        }
+        return user.amount.mul(accSLPPerShare).div(1e30).sub(user.rewardSLPDebt);
+    }
+
     // Update reward variables of the given pool to be up-to-date.
     function updatePool() internal {
         PoolInfo storage pool = poolInfo;
@@ -219,6 +252,12 @@ contract MasterChefLP is Ownable {
         pool.lastLPRewardBalance = rewardBalance;
         pool.totalLPReward = _totalReward;
 
+        //// SLP
+        uint256 rewardSLPBalance = pool.slpToken.balanceOf(address(this));
+        uint256 _totalRewardSLP = pool.totalSLPReward.add(rewardSLPBalance.sub(pool.lastSLPRewardBalance));
+        pool.lastSLPRewardBalance = rewardSLPBalance;
+        pool.totalSLPReward = _totalRewardSLP;
+
         uint256 lpSupply = totalLPStaked;
         if (lpSupply == 0) {
             pool.lastRewardBlock = rewardBlockNumber;
@@ -227,6 +266,13 @@ contract MasterChefLP is Ownable {
             user.rewardLPDebt = 0;
             pool.lastLPRewardBalance = 0;
             pool.totalLPReward = 0;
+
+            //// SLP
+            pool.accSLPPerShare = 0;
+            pool.lastTotalSLPReward = 0;
+            user.rewardSLPDebt = 0;
+            pool.lastSLPRewardBalance = 0;
+            pool.totalSLPReward = 0;
             return;
         }
         uint256 multiplier = getMultiplier(pool.lastRewardBlock, rewardBlockNumber);
@@ -237,6 +283,11 @@ contract MasterChefLP is Ownable {
         uint256 reward = _totalReward.sub(pool.lastTotalLPReward);
         pool.accLPPerShare = pool.accLPPerShare.add(reward.mul(1e12).div(lpSupply));
         pool.lastTotalLPReward = _totalReward;
+
+        //// SLP
+        uint256 rewardSLP = _totalRewardSLP.sub(pool.lastTotalSLPReward);
+        pool.accSLPPerShare = pool.accSLPPerShare.add(rewardSLP.mul(1e30).div(lpSupply));
+        pool.lastTotalSLPReward = _totalRewardSLP;
     }
 
     // Deposit LP tokens to MasterChef for VEMP allocation.
@@ -251,12 +302,18 @@ contract MasterChefLP is Ownable {
             uint256 LPReward = user.amount.mul(pool.accLPPerShare).div(1e12).sub(user.rewardLPDebt);
             pool.lpToken.safeTransfer(_user, LPReward);
             pool.lastLPRewardBalance = pool.lpToken.balanceOf(address(this)).sub(totalLPStaked.sub(totalLPUsedForPurchase));
+
+            //// SLP
+            uint256 sLPReward = user.amount.mul(pool.accSLPPerShare).div(1e30).sub(user.rewardSLPDebt);
+            pool.slpToken.safeTransfer(_user, sLPReward);
+            pool.lastSLPRewardBalance = pool.slpToken.balanceOf(address(this));
         }
         pool.lpToken.safeTransferFrom(msg.sender, address(this), _amount);
         totalLPStaked = totalLPStaked.add(_amount);
         user.amount = user.amount.add(_amount);
         user.rewardDebt = user.amount.mul(pool.accVEMPPerShare).div(1e12);
         user.rewardLPDebt = user.amount.mul(pool.accLPPerShare).div(1e12);
+        user.rewardSLPDebt = user.amount.mul(pool.accSLPPerShare).div(1e30);
 
         emit Deposit(_user, _amount);
     }
@@ -275,6 +332,11 @@ contract MasterChefLP is Ownable {
             uint256 LPReward = user.amount.mul(pool.accLPPerShare).div(1e12).sub(user.rewardLPDebt);
             pool.lpToken.safeTransfer(msg.sender, LPReward);
             pool.lastLPRewardBalance = pool.lpToken.balanceOf(address(this)).sub(totalLPStaked.sub(totalLPUsedForPurchase));
+
+            //// SLP
+            uint256 sLPReward = user.amount.mul(pool.accSLPPerShare).div(1e30).sub(user.rewardSLPDebt);
+            pool.slpToken.safeTransfer(msg.sender, sLPReward);
+            pool.lastSLPRewardBalance = pool.slpToken.balanceOf(address(this));
         }
         UserLockInfo storage userLock = userLockInfo[msg.sender];
 
@@ -311,6 +373,7 @@ contract MasterChefLP is Ownable {
         user.rewardDebt = user.amount.mul(pool.accVEMPPerShare).div(1e12);
         user.rewardLPDebt = user.amount.mul(pool.accLPPerShare).div(1e12);
         totalLPStaked = totalLPStaked.sub(_amount);
+        user.rewardSLPDebt = user.amount.mul(pool.accSLPPerShare).div(1e30);
         pool.lpToken.safeTransfer(msg.sender, _amount);
 
         emit Withdraw(msg.sender, _amount);
@@ -337,6 +400,19 @@ contract MasterChefLP is Ownable {
         pool.lastLPRewardBalance = pool.lpToken.balanceOf(address(this)).sub(totalLPStaked.sub(totalLPUsedForPurchase));
 
         user.rewardLPDebt = user.amount.mul(pool.accLPPerShare).div(1e12);
+    }
+
+    //// users claimimg their SLP given by admin
+    function claimSLP() public {
+        PoolInfo storage pool = poolInfo;
+        UserInfo storage user = userInfo[msg.sender];
+        updatePool();
+
+        uint256 SLPReward = user.amount.mul(pool.accSLPPerShare).div(1e30).sub(user.rewardSLPDebt);
+        pool.slpToken.safeTransfer(msg.sender, SLPReward);
+        pool.lastSLPRewardBalance = pool.slpToken.balanceOf(address(this));
+
+        user.rewardSLPDebt = user.amount.mul(pool.accSLPPerShare).div(1e30);
     }
 
     // Safe LP transfer function to admin.
