@@ -84,11 +84,8 @@ contract MasterChefLP is Ownable {
     // reward end block number
     uint256 public rewardEndBlock;
 
-    uint256 public vempBurnPercent;
-    uint256 public xVempHoldPercent;
-    uint256 public vempLockPercent;
+    uint256 public vempLockAmount;
     uint256 public lockPeriod;
-    IERC20 public xVEMP;
     uint256 public totalVempLock;
     mapping (address => UserLockInfo) public userLockInfo;
 
@@ -100,40 +97,35 @@ contract MasterChefLP is Ownable {
     event RewardPerBlock(uint256 oldRewardPerBlock, uint256 newRewardPerBlock);
     event AccessLPToken(address indexed user, uint256 amount, uint256 totalLPUsedForPurchase);
     event AddLPTokensInPool(uint256 amount, uint256 totalLPUsedForPurchase);
+    event UpdateVempLockAmount(uint256 _oldLockAmount, uint256 _newLockAmount);
+    event UpdateLockPeriod(uint256 _oldLockPeriod, uint256 _newLockPeriod);
 
     constructor() public {}
 
     function initialize(
         IERC20 _VEMP,
         IERC20 _lpToken,
-        address _xvemp,
         address _adminaddr,
         uint256 _VEMPPerBlock,
         uint256 _startBlock,
-        uint256 _vempBurnPercent,
-        uint256 _xVempHoldPercent,
-        uint256 _lockPeriod,
-        uint256 _vempLockPercent
+        uint256 _vempLockAmount,
+        uint256 _lockPeriod
     ) public initializer {
         require(address(_VEMP) != address(0), "Invalid VEMP address");
         require(address(_lpToken) != address(0), "Invalid lpToken address");
         require(address(_adminaddr) != address(0), "Invalid admin address");
-        require(_xvemp != address(0), "Invalid xvemp address");
 
         Ownable.init(_adminaddr);
         VEMP = _VEMP;
         adminaddr = _adminaddr;
-        xVEMP = IERC20(_xvemp);
         VEMPPerBlock = _VEMPPerBlock;
         startBlock = _startBlock;
         withdrawStatus = false;
         rewardEndStatus = false;
         rewardEndBlock = 0;
 
-        vempBurnPercent = _vempBurnPercent;
-        xVempHoldPercent = _xVempHoldPercent;
+        vempLockAmount = _vempLockAmount;
         lockPeriod = _lockPeriod;
-        vempLockPercent = _vempLockPercent;
 
         uint256 lastRewardBlock = block.number > startBlock ? block.number : startBlock;
         totalAllocPoint = totalAllocPoint.add(100);
@@ -147,30 +139,26 @@ contract MasterChefLP is Ownable {
         poolInfo.totalLPReward = 0;
     }
 
-    function updateVempBurnPercent(uint256 _vempBurnPercent) public onlyOwner {
-        vempBurnPercent = _vempBurnPercent;
-    }
-
-    function updatexVempHoldPercent(uint256 _xVempHoldPercent) public onlyOwner {
-        xVempHoldPercent = _xVempHoldPercent;
-    }
-
-    function updateVempLockPercent(uint256 _vempLockPercent) public onlyOwner {
-        vempLockPercent = _vempLockPercent;
+    function updateVempLockAmount(uint256 _vempLockAmount) public onlyOwner {
+        emit UpdateVempLockAmount(vempLockAmount, _vempLockAmount);
+        vempLockAmount = _vempLockAmount;
     }
 
     function updateLockPeriod(uint256 _lockPeriod) public onlyOwner {
+        emit UpdateLockPeriod(lockPeriod, _lockPeriod);
         lockPeriod = _lockPeriod;
     }
 
-    function lock(uint256 _amount) public {
-        UserLockInfo storage user = userLockInfo[msg.sender];
+    function lock() public {
+        UserLockInfo storage userLock = userLockInfo[msg.sender];
 
-        VEMP.transferFrom(msg.sender, address(this), _amount);
-        user.amount = user.amount.add(_amount);
-        totalVempLock = totalVempLock.add(_amount);
-        if(user.lockTime <= 0)
-        user.lockTime = block.timestamp;
+        UserInfo storage user = userInfo[msg.sender];
+        require(user.amount > 0, "Not Staked");
+        VEMP.transferFrom(msg.sender, address(this), vempLockAmount);
+        userLock.amount = userLock.amount.add(vempLockAmount);
+        totalVempLock = totalVempLock.add(vempLockAmount);
+        if(userLock.lockTime <= 0)
+        userLock.lockTime = block.timestamp;
     }
 
     // Return reward multiplier over the given _from to _to block.
@@ -292,23 +280,26 @@ contract MasterChefLP is Ownable {
 
         if(_directStatus) {
             uint256 vempAmount = VEMP.balanceOf(msg.sender);
-            uint256 burnAmount = _amount.mul(vempBurnPercent).div(1000);
-            if(userLock.amount > 0 && userLock.lockTime.add(lockPeriod) <= block.timestamp) {
+            uint256 burnAmount = vempLockAmount;
+            if((userLock.amount >= vempLockAmount && userLock.lockTime.add(lockPeriod) <= block.timestamp)) {
                 burnAmount = 0;
                 VEMP.transfer(msg.sender, userLock.amount.sub(burnAmount));
-            } else if(userLock.amount > 0 && userLock.lockTime.add(lockPeriod.div(2)) <= block.timestamp) {
-                burnAmount = burnAmount.div(2);
+            } else if(userLock.amount >= vempLockAmount && userLock.lockTime.add(lockPeriod.div(2)) <= block.timestamp) {
+                burnAmount = vempLockAmount.div(2);
+                require(burnAmount <= userLock.amount, "Insufficient VEMP Burn Amount");
+                VEMP.transfer(address(0x000000000000000000000000000000000000dEaD), burnAmount);
+                VEMP.transfer(msg.sender, userLock.amount.sub(burnAmount));
+            } else if(userLock.amount >= vempLockAmount && userLock.lockTime.add(lockPeriod.div(2)) >= block.timestamp) {
+                burnAmount = vempLockAmount;
                 require(burnAmount <= userLock.amount, "Insufficient VEMP Burn Amount");
                 VEMP.transfer(address(0x000000000000000000000000000000000000dEaD), burnAmount);
                 VEMP.transfer(msg.sender, userLock.amount.sub(burnAmount));
             } else if(userLock.amount == 0) {
-                require(burnAmount <= vempAmount, "Insufficient VEMP Burn Amount");
-                VEMP.transferFrom(msg.sender, address(0x000000000000000000000000000000000000dEaD), burnAmount);
+                require(vempLockAmount <= vempAmount, "Insufficient VEMP Burn Amount");
+                VEMP.transferFrom(msg.sender, address(0x000000000000000000000000000000000000dEaD), vempLockAmount);
             }
         } else {
-            uint256 xVempAmount = xVEMP.balanceOf(msg.sender);
-            require(_amount.mul(xVempHoldPercent).div(1000) <= xVempAmount, "Insufficient xVEMP Hold Amount");
-            require(_amount.mul(vempLockPercent).div(1000) <= userLock.amount, "Insufficient VEMP Locked");
+            require(vempLockAmount <= userLock.amount, "Insufficient VEMP Locked");
             require(userLock.lockTime.add(lockPeriod) <= block.timestamp, "Lock period not complete.");
             VEMP.transfer(msg.sender, userLock.amount);
         }
@@ -323,19 +314,6 @@ contract MasterChefLP is Ownable {
         pool.lpToken.safeTransfer(msg.sender, _amount);
 
         emit Withdraw(msg.sender, _amount);
-    }
-
-    // Withdraw without caring about rewards. EMERGENCY ONLY.
-    function emergencyWithdraw() public {
-        require(withdrawStatus != true, "Withdraw not allowed");
-        PoolInfo storage pool = poolInfo;
-        UserInfo storage user = userInfo[msg.sender];
-        pool.lpToken.safeTransfer(msg.sender, user.amount);
-        totalLPStaked = totalLPStaked.sub(user.amount);
-        user.amount = 0;
-        user.rewardDebt = 0;
-        user.rewardLPDebt = 0;
-        emit EmergencyWithdraw(msg.sender, user.amount);
     }
 
     // Safe VEMP transfer function, just in case if rounding error causes pool to not have enough VEMPs.

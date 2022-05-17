@@ -52,34 +52,25 @@ contract LiquidityPool is Ownable {
         uint256 lockTime; // lockTime of VEMP
     }
 
-    IERC20 public xVEMP;
     IERC20 public VEMP;
     mapping(address => bool) public masterChefStatus;
-    uint256 public vempBurnPercent;
-    uint256 public xVempHoldPercent;
-    uint256 public vempLockPercent;
+    uint256 public vempLockAmount;
     uint256 public lockPeriod;
     mapping (address => mapping (address => WithdrawInfo)) public withdrawInfo;
     mapping (address => mapping (address => UserLockInfo)) public userLockInfo;
     mapping (address => address) public chef;
 
-    event UpdateVempBurnPercent(uint256 _oldBurnPercent, uint256 _newBurnPercent);
-    event UpdatexVempHoldPercent(uint256 _oldxVEMPHodlPercent, uint256 _newxVEMPHodlPercent);
-    event UpdateVempLockPercent(uint256 _oldVempLockPercent, uint256 _newVempLockPercent);
+    event UpdateVempLockAmount(uint256 _oldLockAmount, uint256 _newLockAmount);
     event UpdateLockPeriod(uint256 _oldLockPeriod, uint256 _newLockPeriod);
 
-    function initialize(address owner_, address _vemp, address _xvemp, uint256 _vempBurnPercent, uint256 _xVempHoldPercent, uint256 _lockPeriod, uint256 _vempLockPercent) public initializer {
+    function initialize(address owner_, address _vemp, uint256 _vempLockAmount, uint256 _lockPeriod) public initializer {
         require(owner_ != address(0), "Invalid owner address");
         require(_vemp != address(0), "Invalid vemp address");
-        require(_xvemp != address(0), "Invalid xvemp address");
 
         Ownable.init(owner_);
         VEMP = IERC20(_vemp);
-        xVEMP = IERC20(_xvemp);
-        vempBurnPercent = _vempBurnPercent;
-        xVempHoldPercent = _xVempHoldPercent;
+        vempLockAmount = _vempLockAmount;
         lockPeriod = _lockPeriod;
-        vempLockPercent = _vempLockPercent;
     }
 
     function whiteListMasterChef(address _masterChef, bool _status) public onlyOwner {
@@ -94,19 +85,9 @@ contract LiquidityPool is Ownable {
         chef[_oldMasterChef] = _newMasterChef;
     }
 
-    function updateVempBurnPercent(uint256 _vempBurnPercent) public onlyOwner {
-        emit UpdateVempBurnPercent(vempBurnPercent, _vempBurnPercent);
-        vempBurnPercent = _vempBurnPercent;
-    }
-
-    function updatexVempHoldPercent(uint256 _xVempHoldPercent) public onlyOwner {
-        emit UpdatexVempHoldPercent(xVempHoldPercent, _xVempHoldPercent);
-        xVempHoldPercent = _xVempHoldPercent;
-    }
-
-    function updateVempLockPercent(uint256 _vempLockPercent) public onlyOwner {
-        emit UpdateVempLockPercent(vempLockPercent, _vempLockPercent);
-        vempLockPercent = _vempLockPercent;
+    function updateVempLockAmount(uint256 _vempLockAmount) public onlyOwner {
+        emit UpdateVempLockAmount(vempLockAmount, _vempLockAmount);
+        vempLockAmount = _vempLockAmount;
     }
 
     function updateLockPeriod(uint256 _lockPeriod) public onlyOwner {
@@ -114,17 +95,19 @@ contract LiquidityPool is Ownable {
         lockPeriod = _lockPeriod;
     }
 
-    function lock(address _masterChef, uint256 _amount) public {
+    function lock(address _masterChef) public {
         require(_masterChef != address(0), "Invalid masterChef Address.");
         require(masterChefStatus[_masterChef] != false, "MasterChef not whiteListed.");
 
         MasterChefInfoStruct.UserInfo memory userInfo = IMasterChef(_masterChef).userInfo(0, msg.sender);
         UserLockInfo storage user = userLockInfo[_masterChef][msg.sender];
-        WithdrawInfo storage   userWithdraw = withdrawInfo[_masterChef][msg.sender];
-        require(userInfo.amount.sub(userWithdraw.amount).mul(vempLockPercent).div(1000) <= user.amount.add(_amount), "Insufficient VEMP Locked.");
+        WithdrawInfo storage userWithdraw = withdrawInfo[_masterChef][msg.sender];
 
-        VEMP.transferFrom(msg.sender, address(this), _amount);
-        user.amount = user.amount.add(_amount);
+        require(userInfo.amount.sub(userWithdraw.amount) > 0, "Not staked amount");
+        require(VEMP.balanceOf(msg.sender) >= vempLockAmount, "Insufficient VEMP for Lock.");
+
+        VEMP.transferFrom(msg.sender, address(this), vempLockAmount);
+        user.amount = user.amount.add(vempLockAmount);
         if(user.lockTime <= 0)
         user.lockTime = block.timestamp;
     }
@@ -144,18 +127,23 @@ contract LiquidityPool is Ownable {
         MasterChefInfoStruct.PoolInfo memory poolInfo = IMasterChef(_masterChef).poolInfo(0);
         if(_directStatus) {
             uint256 vempAmount = VEMP.balanceOf(msg.sender);
-            uint256 burnAmount = userInfo.amount.sub(user.amount).mul(vempBurnPercent).div(1000);
-            if((userLock.amount > 0 && userLock.lockTime.add(lockPeriod) <= block.timestamp) || _migrate) {
+            uint256 burnAmount = vempLockAmount;
+            if((userLock.amount >= vempLockAmount && userLock.lockTime.add(lockPeriod) <= block.timestamp) || _migrate) {
                 burnAmount = 0;
                 VEMP.transfer(msg.sender, userLock.amount.sub(burnAmount));
-            } else if(userLock.amount > 0 && userLock.lockTime.add(lockPeriod.div(2)) <= block.timestamp) {
-                burnAmount = burnAmount.div(2);
+            } else if(userLock.amount >= vempLockAmount && userLock.lockTime.add(lockPeriod.div(2)) <= block.timestamp) {
+                burnAmount = vempLockAmount.div(2);
+                require(burnAmount <= userLock.amount, "Insufficient VEMP Burn Amount");
+                VEMP.transfer(address(0x000000000000000000000000000000000000dEaD), burnAmount);
+                VEMP.transfer(msg.sender, userLock.amount.sub(burnAmount));
+            } else if(userLock.amount >= vempLockAmount && userLock.lockTime.add(lockPeriod.div(2)) >= block.timestamp) {
+                burnAmount = vempLockAmount;
                 require(burnAmount <= userLock.amount, "Insufficient VEMP Burn Amount");
                 VEMP.transfer(address(0x000000000000000000000000000000000000dEaD), burnAmount);
                 VEMP.transfer(msg.sender, userLock.amount.sub(burnAmount));
             } else if(userLock.amount == 0) {
-                require(burnAmount <= vempAmount, "Insufficient VEMP Burn Amount");
-                VEMP.transferFrom(msg.sender, address(0x000000000000000000000000000000000000dEaD), burnAmount);
+                require(vempLockAmount <= vempAmount, "Insufficient VEMP Burn Amount");
+                VEMP.transferFrom(msg.sender, address(0x000000000000000000000000000000000000dEaD), vempLockAmount);
             }
             if(_migrate) {
                 IERC20(poolInfo.lpToken).approve(chef[_masterChef], userInfo.amount.sub(user.amount));
@@ -164,9 +152,7 @@ contract LiquidityPool is Ownable {
                 poolInfo.lpToken.transfer(msg.sender, userInfo.amount.sub(user.amount));
             }
         } else {
-            uint256 xVempAmount = xVEMP.balanceOf(msg.sender);
-            require(userInfo.amount.sub(user.amount).mul(xVempHoldPercent).div(1000) <= xVempAmount || _migrate, "Insufficient xVEMP Hold Amount");
-            require(userInfo.amount.sub(user.amount).mul(vempLockPercent).div(1000) <= userLock.amount || _migrate, "Insufficient VEMP Locked");
+            require(vempLockAmount <= userLock.amount || _migrate, "Insufficient VEMP Locked");
             require(userLock.lockTime.add(lockPeriod) <= block.timestamp  || _migrate, "Lock period not complete.");
             if(_migrate) {
                 IERC20(poolInfo.lpToken).approve(chef[_masterChef], userInfo.amount.sub(user.amount));
