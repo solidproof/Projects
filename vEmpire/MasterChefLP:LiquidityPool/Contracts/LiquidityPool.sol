@@ -59,6 +59,7 @@ contract LiquidityPool is Ownable {
     mapping (address => mapping (address => WithdrawInfo)) public withdrawInfo;
     mapping (address => mapping (address => UserLockInfo)) public userLockInfo;
     mapping (address => address) public chef;
+    mapping (address => mapping( address => bool)) public blackListUser;
 
     event UpdateVempLockAmount(uint256 _oldLockAmount, uint256 _newLockAmount);
     event UpdateLockPeriod(uint256 _oldLockPeriod, uint256 _newLockPeriod);
@@ -79,6 +80,12 @@ contract LiquidityPool is Ownable {
         masterChefStatus[_masterChef] = _status;
     }
 
+    function blackListUsers(address _masterChef, address _user, bool _status) public onlyOwner {
+        require(blackListUser[_masterChef][_user] != _status, "Already in same status");
+        require(address(_masterChef) != address(0), "Invalid address");
+        blackListUser[_masterChef][_user] = _status;
+    }
+
     function addNewMasterChef(address _oldMasterChef, address _newMasterChef) public onlyOwner {
         require(address(_oldMasterChef) != address(0), "Invalid address");
         require(address(_newMasterChef) != address(0), "Invalid new masterchef address");
@@ -96,6 +103,7 @@ contract LiquidityPool is Ownable {
     }
 
     function lock(address _masterChef) public {
+        require(blackListUser[_masterChef][msg.sender] != true, "Not allowed");
         require(_masterChef != address(0), "Invalid masterChef Address.");
         require(masterChefStatus[_masterChef] != false, "MasterChef not whiteListed.");
 
@@ -114,6 +122,7 @@ contract LiquidityPool is Ownable {
 
     // Unstake the pool. Claim back your staked tokens.
     function unstake(address _masterChef, bool _directStatus, bool _migrate) public {
+        require(blackListUser[_masterChef][msg.sender] != true, "Not allowed");
         require(_masterChef != address(0), "Invalid masterChef Address");
         require(masterChefStatus[_masterChef] != false, "MasterChef not whiteListed");
 
@@ -186,4 +195,4 @@ contract LiquidityPool is Ownable {
         bool status = IERC20(_token).transfer(_to, _amount);
         require(status, "Token transfer failed");
     }
-}
+}w
