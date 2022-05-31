@@ -455,6 +455,7 @@ contract Wave is ERC20Detailed, Ownable {
     event SetTaxBracketFeeMultiplierEvent(uint256 indexed state, uint256 indexed time);
     event SetTaxBracketEvent(bool indexed value,uint256 indexed time
     );
+    event set_Wrapped(address _addr, bool indexed value);
 
     IPancakeSwapPair public pairContract;
 
@@ -469,7 +470,7 @@ contract Wave is ERC20Detailed, Ownable {
     }
 
     modifier validRecipient(address to) {
-        require(to != address(0x0));
+        require(to != address(0x0), "Address cannot be zero address.");
         _;
     }
 
@@ -552,6 +553,14 @@ contract Wave is ERC20Detailed, Ownable {
         address _treasuryReceiver,
         address _firePit
     ) ERC20Detailed("Wave", "$WAVE", uint8(DECIMALS)) {
+
+        require(
+            (_router != address(0x0)) &&
+            (_autoLiquidityReceiver != address(0x0)) &&
+            (_treasuryReceiver != address(0x0)) &&
+            (_firePit != address(0x0))
+            , "Address cannot be zero address.");
+
         router = IPancakeSwapRouter(_router);
 
         address _pair = IPancakeSwapFactory(IPancakeSwapRouter(_router).factory()).createPair(
@@ -589,7 +598,14 @@ contract Wave is ERC20Detailed, Ownable {
     }
 
     function setWrapped(address addr) external onlyOwner {
+        require(wrapped_set == false, "Wrapped contract address can only be defined once.");
+        require(isContract(addr), "Address must be of Contract");
+        require(addr != address(0x0), "Address cannot be zero address.");
+
         wrapped = addr;
+        wrapped_set = true; // prevents modifying the wrapped address after it was modified once
+
+        emit set_Wrapped(addr, true);
     }
 
     function setNextRebase(uint256 _nextRebase) external onlyOwner {
@@ -599,6 +615,7 @@ contract Wave is ERC20Detailed, Ownable {
     }
 
     function setRewardYield(uint256 _rewardYield, uint256 _rewardYieldDenominator) external onlyOwner {
+        require(_rewardYieldDenominator > 0 , "You can't set to 0");
         rewardYield = _rewardYield;
         rewardYieldDenominator = _rewardYieldDenominator;
 
@@ -632,6 +649,8 @@ contract Wave is ERC20Detailed, Ownable {
     }
 
     function swipe(address _receiver) external onlyOwner {
+
+        require(_receiver != address(0x0), "Address cannot be zero address.");
         uint256 balance = address(this).balance;
         payable(_receiver).transfer(balance);
 
@@ -696,7 +715,7 @@ contract Wave is ERC20Detailed, Ownable {
 
     function setLP(address _address) external onlyOwner {
         pairContract = IPancakeSwapPair(_address);
-        _isFeeExempt[_address];
+        _isFeeExempt[_address] = true;
 
         emit NewLPSet(_address);
     }
@@ -1084,6 +1103,13 @@ contract Wave is ERC20Detailed, Ownable {
         address _autoLiquidityReceiver,
         address _treasuryReceiver
     ) external onlyOwner {
+
+        require(
+            (_autoLiquidityReceiver != address(0x0)) &&
+            (_treasuryReceiver != address(0x0)),
+            "Address cannot be zero address."
+        );
+
         autoLiquidityReceiver = _autoLiquidityReceiver;
         treasuryReceiver = _treasuryReceiver;
 
@@ -1094,6 +1120,7 @@ contract Wave is ERC20Detailed, Ownable {
         require(_liquidityFee <= MaxliquidityFee , "You can't set higher than MAX");
         require(_treasuryFee <= MaxtreasuryFee , "You can't set higher than MAX");
         require(_firePitFee <= MaxFirePitfee , "You can't set higher than MAX");
+        require(_feeDenominator > 0 , "You can't set to 0");
         liquidityFee = _liquidityFee;
         treasuryFee = _treasuryFee;
         firePitFee = _firePitFee;
@@ -1115,8 +1142,6 @@ contract Wave is ERC20Detailed, Ownable {
         emit NewFeesSet(_liquidityFeeSell,_treasuryFeeSell, _firePitFeeSell,_feeDenominator);
     }
 
-
-
     function getLiquidityBacking(uint256 accuracy)
         public
         view
@@ -1128,6 +1153,12 @@ contract Wave is ERC20Detailed, Ownable {
 
     function isOverLiquified(uint256 target, uint256 accuracy) public view returns (bool) {
         return getLiquidityBacking(accuracy) > target;
+    }
+
+    function isContract(address _adr) internal view returns (bool) {
+        uint size;
+        assembly { size := extcodesize(_adr) }
+        return size > 0;
     }
 
     receive() external payable {}
