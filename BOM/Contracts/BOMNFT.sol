@@ -1,17 +1,12 @@
-// SPDX-License-Identifier: GPL-3.0
+// SPDX-License-Identifier: MIT
 
-// Created by Doodlenauts
-
-pragma solidity ^0.8.1;
+pragma solidity 0.8.7;
 
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "./IERC20.sol";
-//Contract: Bom NFT
-//Auther: Troica
-//----CONTRACT BEGINS HERE------
 
 interface LPPrice {
     function getCurrentPrice(address _lppairaddress) external view returns(uint256);
@@ -96,7 +91,7 @@ contract BOMNFT is ERC721URIStorage, Ownable, BlackList {
         return _baseURI();
     }
 
-    function setLPpairaddress(address _address) external {
+    function setLPpairaddress(address _address) external onlyOwner {
         lpAddress = _address;
     }
 
@@ -111,29 +106,7 @@ contract BOMNFT is ERC721URIStorage, Ownable, BlackList {
 
     //public
     function mint(string memory _tokenURI, uint id) public payable returns(uint tokenID) {
-        require(!paused);
-        require(supply + 1 <= allowedSupply);
-        if(msg.sender == owner()) {}
-        else if (id == 0) {
-            lpinfo.updatePriceFromLP(lpAddress);
-            uint maticCost = getNFTMaticPrice(1);
-            require(msg.value >= maticCost, "Matic not enough");
-            if (msg.value > maticCost) {
-                payable(msg.sender).transfer(msg.value - maticCost);
-            }
-        }
-        else {
-            require(withdrawAddress != address(0));
-            if      (id == 1) busd.transferFrom(msg.sender, withdrawAddress, usdCost * 10 ** busd.decimals() / 10 ** _decimals);
-            else if (id == 2) usdt.transferFrom(msg.sender, withdrawAddress, usdCost * 10 ** usdt.decimals() / 10 ** _decimals);
-            else if (id == 3) usdc.transferFrom(msg.sender, withdrawAddress, usdCost * 10 ** usdc.decimals() / 10 ** _decimals);
-        }
-
-        supply++;
-        uint _tokenID = supply;
-        _mint(msg.sender, _tokenID);
-        _setTokenURI(_tokenID, _tokenURI);
-        return _tokenID;
+        return mintNFTs(1, _tokenURI, id, 0, "");
     }
 
     function mintNFTs(uint256 _count, string memory _tokenFolderURI, uint id, uint _mode, string memory _ext) public payable returns(uint startingTokenID){
@@ -141,6 +114,7 @@ contract BOMNFT is ERC721URIStorage, Ownable, BlackList {
         // _ext is the metadata extension when using advanced mint
         require(!paused);
         require(supply + _count <= allowedSupply);
+
         if (msg.sender == owner()) {}
         else if (id == 0) {
             lpinfo.updatePriceFromLP(lpAddress);
@@ -167,6 +141,7 @@ contract BOMNFT is ERC721URIStorage, Ownable, BlackList {
         }
         return _tokenID + 1 - _count;
     }
+
     function _beforeTokenTransfer(address from, address, uint256) internal override view{
         // Check if the sender is blacklisted
         require(!isBlackListed[from]);
