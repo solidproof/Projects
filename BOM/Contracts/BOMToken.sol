@@ -25,7 +25,7 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
         * @dev Modifier to make a function callable only when the contract is not paused.
         */
         modifier whenNotPaused() {
-            require(!paused);
+            require(!paused, "Paused");
             _;
         }
 
@@ -33,7 +33,7 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
         * @dev Modifier to make a function callable only when the contract is paused.
         */
         modifier whenPaused() {
-            require(paused);
+            require(paused, "Not paused");
             _;
         }
 
@@ -48,7 +48,7 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
         /**
         * @dev called by the owner to unpause, returns to normal state
         */
-        function unpause() public whenNotPaused onlyOwner {
+        function unpause() public whenPaused onlyOwner {
             paused = false;
             emit Unpause();
         }
@@ -135,6 +135,8 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
         event TransferFee(address from, address to, uint amount, uint fee);
         event LPPriceUpdated(uint);
         event DistdelayDurationChanged(uint);
+        event LPstakeUpdated(uint);
+        event MarketingAddressUpdated(uint);
     }
 
     interface BOMNft {
@@ -200,10 +202,10 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
         // Set the reward wallets
         function setRewardWalletAddress(address _lpMasterAddress, address _marketingWallet, address _teamWallet, address _techWallet) external onlyOwner {
-            require(_lpMasterAddress != address(0));
-            require(_marketingWallet != address(0));
-            require(_teamWallet != address(0));
-            require(_techWallet != address(0));
+            require(_lpMasterAddress != address(0), "Cannot be zero address");
+            require(_marketingWallet != address(0), "Cannot be zero address");
+            require(_teamWallet != address(0), "Cannot be zero address");
+            require(_techWallet != address(0), "Cannot be zero address");
 
             lpMasterAddress = _lpMasterAddress;
             marketingWallet = _marketingWallet;
@@ -223,10 +225,6 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
         */
         function decimals() external override view returns (uint8) {
             return _decimals;
-        }
-
-        function getDecVal() internal view returns (uint) {
-            return decVal;
         }
 
         /**
@@ -276,7 +274,7 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
             override
             returns (bool)
         {
-            require(!isBlackListed[msg.sender]);
+            require(!isBlackListed[msg.sender], "Blacklisted address");
             // _transfer(_msgSender(), recipient, amount);
 
             uint txn_fee = calcTxnFee(amount);
@@ -292,8 +290,8 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
             override
             whenNotPaused
             returns(bool) {
-            require(!isBlackListed[msg.sender]);
-            require(bomnft.checkIfExistsTokenID(_nftID));
+            require(!isBlackListed[msg.sender], "Blacklisted address");
+            require(bomnft.checkIfExistsTokenID(_nftID), "NFT id doesn't exist");
 
             uint txn_fee = calcTxnFee(_value);
             uint sendAmount = _value.sub(txn_fee);
@@ -425,7 +423,7 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
             address recipient,
             uint256 amount
         ) external override returns (bool) {
-            require(!isBlackListed[sender]);
+            require(!isBlackListed[sender], "Blacklisted address");
             uint _allowance = _allowances[sender][msg.sender];
 
             uint txn_fee = calcTxnFee(amount);
@@ -451,8 +449,8 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
             override
             whenNotPaused
             returns (bool) {
-            require(!isBlackListed[_from]);
-            require(bomnft.checkIfExistsTokenID(_nftID));
+            require(!isBlackListed[_from], "Blacklisted address");
+            require(bomnft.checkIfExistsTokenID(_nftID), "NFT ID doesn't exist");
 
             uint _allowance = _allowances[_from][msg.sender];
             address _to = bomnft.ownerOf(_nftID);
@@ -658,8 +656,8 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
             address _spender,
             uint256 amount
         ) internal {
-            require(_owner != address(0));
-            require(_spender != address(0));
+            require(_owner != address(0), "Cannot be zero address");
+            require(_spender != address(0), "Cannot be zero address");
 
             _allowances[_owner][_spender] = amount;
             emit Approval(_owner, _spender, amount);
@@ -677,17 +675,17 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
         function transferInvestorWalletOwnership(address newAddress, uint investorID) external returns(bool) {
             require(newAddress != address(0), "Cannot be zero address");
             if (investorID == 1) {
-                require(msg.sender == investorWallet1);
+                require(msg.sender == investorWallet1, "Not proper address");
                 investorWallet1 = newAddress;
                 return true;
             }
             else if (investorID == 2) {
-                require(msg.sender == investorWallet2);
+                require(msg.sender == investorWallet2, "Not proper address");
                 investorWallet2 = newAddress;
                 return true;
             }
             else if (investorID == 3) {
-                require(msg.sender == investorWallet3);
+                require(msg.sender == investorWallet3, "Not proper address");
                 investorWallet2 = newAddress;
                 return true;
             }
@@ -696,6 +694,7 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
         }
 
         function setLPpairaddress(address _address) external onlyOwner {
+            require(_address != address(0), "Cannot be zero address");
             lpAddress = _address;
             fetchLPPrice();
         }
@@ -715,9 +714,11 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
         function setLPStake(uint _lpStake) external onlyOwner {
             require(_lpStake < lpStake, "LPStake value can only be decreased!");
             lpStake = _lpStake;
+            emit LPstakeUpdated(_lpStake);
         }
         function setMarketingStake(uint _marketingStake) external onlyOwner {
             require(_marketingStake < marketingStake, "MarketingStake value can only be decreased!");
             marketingStake = _marketingStake;
+            emit MarketingAddressUpdated(_marketingStake);
         }
     }
