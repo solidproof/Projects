@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENCED
-pragma solidity >=0.4.22 <0.9.0;
+pragma solidity ^0.8.10;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20BurnableUpgradeable.sol";
@@ -7,6 +7,7 @@ import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+
 
 /// @custom:security-contact info@chainoflegends.com
 contract ColToken is
@@ -25,11 +26,11 @@ contract ColToken is
       version = _newVersion;
     }
 
-    function initialize(string memory _name, string memory _symbol)
+    function initialize(string memory _tokenName, string memory _tokenSymbol)
         public
         initializer
     {
-        __ERC20_init(_name, _symbol);
+        __ERC20_init(_tokenName, _tokenSymbol);
         __ERC20Burnable_init();
         __Pausable_init();
         __Ownable_init();
@@ -60,10 +61,6 @@ contract ColToken is
         onlyOwner
     {}
 
-    function twoSideApprove(address from, address to, uint amount) public onlyOwner{
-      super._approve(from, to, amount);
-    }
-
     function give(address to, uint256 amount) public onlyOwner{
       transferFrom(address(this), to, amount);
     }
@@ -72,8 +69,6 @@ contract ColToken is
       require(recepients.length > 0, "No recepient privided");
       require(recepients.length == values.length, "recepients count should be equal to values count");
       for (uint256 i = 0; i < recepients.length; i++) {
-        //require(values[i] > 0, "value 0 can not be accepted");
-        //twoSideApprove(address(this),recepients[i], values[i]);
         transferFrom(address(this),recepients[i], values[i]);
       }
     }
