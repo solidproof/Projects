@@ -13,6 +13,7 @@ contract Airdrop is Ownable {
 
     constructor(address _tokenAddr) public {
         // this is where you input the token address you want to airdroped
+        require(_tokenAddr != address(0));
         tokenAddr = _tokenAddr;
     }
 
@@ -38,9 +39,9 @@ contract Airdrop is Ownable {
      * @param newTokenAddr is the new token address 
     */
     function updateTokenAddress(address newTokenAddr) public onlyOwner {
-
         // when LIXX platform want to airdrop another
         // token the owner will use this for updating the token address
+        require(newTokenAddr != address(0));
         tokenAddr = newTokenAddr;
     }
 
@@ -51,6 +52,7 @@ contract Airdrop is Ownable {
     function withdrawTokens(address beneficiary) public onlyOwner {
         // withdraw tokens from contract address
         // Transfer the balance of the token to the wallet address
+        require(beneficiary != address(0));
         require(Token(tokenAddr).transfer(beneficiary, Token(tokenAddr).balanceOf(address(this))));
     }
 
