@@ -1,9 +1,9 @@
 /**
- *Submitted for verification at BscScan.com on 2022-06-04
+ *Submitted for verification at BscScan.com on 2022-06-11
 */
 
 // SPDX-License-Identifier: Unlicensed
-pragma solidity ^0.8.13;
+pragma solidity 0.8.14;
 
 abstract contract Context {
     function _msgSender() internal view virtual returns (address payable) {
@@ -70,7 +70,6 @@ library SafeMath {
     function div(uint256 a, uint256 b, string memory errorMessage) internal pure returns (uint256) {
         require(b > 0, errorMessage);
         uint256 c = a / b;
-        // assert(a == b * c + a % b); // There is no case in which this doesn't hold
 
         return c;
     }
@@ -197,6 +196,7 @@ contract Ownable is Context {
         require(block.timestamp > _lockTime , "Contract is locked until 7 days");
         emit OwnershipTransferred(_owner, _previousOwner);
         _owner = _previousOwner;
+        _previousOwner = address(0);
     }
 }
 
@@ -405,8 +405,8 @@ contract SpeedFi is Context, IERC20, Ownable {
     using SafeMath for uint256;
     using Address for address;
     // Multisig Protocol Wallets
-    address payable public marketingAddress = payable(0xAd9b97fa8f28daCa6731d116d6fD2C72A164Ae0b);
-    address payable public developmentAddress = payable(0xAd9b97fa8f28daCa6731d116d6fD2C72A164Ae0b);
+    address payable public marketingAddress = payable(0x3095e2D4E8D8b5b59Bd37FD77071571E65BF9b79);
+    address payable public developmentAddress = payable(0x3D866B47919c3187dEF9196c5dD9293CA9dbAA6a);
     address payable public liquidityWallet = payable(address(this));
     address public deadAddress = 0x000000000000000000000000000000000000dEaD;
 
@@ -449,8 +449,6 @@ contract SpeedFi is Context, IERC20, Ownable {
     uint256 public _sellDevelopmentFee = 2;
     uint256 public _sellLiquidityFee = 8;
 
-
-
     // Protocol Fees
     uint256 public _bMaxTxAmount = 1000000000  * 10**9;
     uint256 public _sMaxTxAmount = 1000000000  * 10**9;
@@ -460,31 +458,37 @@ contract SpeedFi is Context, IERC20, Ownable {
     IUniswapV2Router02 public uniswapV2Router;
     address public uniswapV2Pair;
 
-    bool inSwapAndLiquify;
+    bool public inSwapAndLiquify;
     bool public swapAndLiquifyEnabled = true;
 
-    event BurnLiquidityProviders(uint256 tokenAmount);
     event SwapAndLiquifyEnabledUpdated(bool enabled);
-    event SwapAndLiquifyBNB(
-        uint256 BNBSwapped,
-        uint256 TokensReceived,
-        uint256 tokensIntoLiqudity
-    );
+
     event SwapAndLiquifyTokens(
         uint256 tokensSwapped,
         uint256 ethReceived,
-        uint256 tokensIntoLiqudity
-    );
-
-    event SwapBNBForTokens(
-        uint256 amountIn,
-        address[] path
+        uint256 tokensIntoLiquidity
     );
 
     event SwapTokensForBNB(
         uint256 amountIn,
         address[] path
     );
+
+    event BuyBurnFee(uint256 newValue);
+    event BuyMarketingFee(uint256 newValue);
+    event BuyDevFee(uint256 newValue);
+    event BuyLiquidityFee(uint256 newValue);
+
+    event SellBurnFee(uint256 newValue);
+    event SellMarketingFee(uint256 newValue);
+    event SellDevFee(uint256 newValue);
+    event SellLiquidityFee(uint256 newValue);
+
+    event MaxBuyTxAmount(uint256 newValue);
+    event MaxSellTxAmount(uint256 newValue);
+    event MinTokenBeforeSwap(uint256 newValue);
+
+
 
     modifier lockTheSwap {
         inSwapAndLiquify = true;
@@ -542,8 +546,8 @@ contract SpeedFi is Context, IERC20, Ownable {
         return true;
     }
 
-    function allowance(address owner, address spender) public view override returns (uint256) {
-        return _allowances[owner][spender];
+    function allowance(address ownerAddress, address spender) public view override returns (uint256) {
+        return _allowances[ownerAddress][spender];
     }
 
     function approve(address spender, uint256 amount) public override returns (bool) {
@@ -580,7 +584,7 @@ contract SpeedFi is Context, IERC20, Ownable {
     }
 
 
-    //Use when new router is released but pair hasnt been created yet.
+    //Use when new router is released but pair is not been created yet.
     //Make sure to add initial liquidity manually after pair is made! Otherwise swapAndLiquify will fail.
     function setRouterAddressAndCreatePair(address newRouter) public onlyOwner() {
         IUniswapV2Router02 _newPancakeRouter = IUniswapV2Router02(newRouter);
@@ -596,6 +600,7 @@ contract SpeedFi is Context, IERC20, Ownable {
 
     //Use when new router is released and pair HAS been created already.
     function setPairAddress(address newPair) public onlyOwner() {
+        require(newPair!=address(0),'Address Should not be 0');
         uniswapV2Pair = newPair;
     }
 
@@ -629,12 +634,12 @@ contract SpeedFi is Context, IERC20, Ownable {
         }
     }
 
-    function _approve(address owner, address spender, uint256 amount) private {
-        require(owner != address(0), "ERC20: approve from the zero address");
+    function _approve(address ownerAddress, address spender, uint256 amount) private {
+        require(ownerAddress != address(0), "ERC20: approve from the zero address");
         require(spender != address(0), "ERC20: approve to the zero address");
 
-        _allowances[owner][spender] = amount;
-        emit Approval(owner, spender, amount);
+        _allowances[ownerAddress][spender] = amount;
+        emit Approval(ownerAddress, spender, amount);
     }
 
     function _transfer(
@@ -714,10 +719,6 @@ contract SpeedFi is Context, IERC20, Ownable {
         _tokenTransfer(from,to,amount);
     }
 
-    function swapTokens(uint256 contractTokenBalance) private lockTheSwap {
-        swapTokensForBNB(contractTokenBalance);
-
-    }
 
     function swapTokensForBNB(uint256 tokenAmount) private {
         // Generate the uniswap pair path of token -> WBNB
@@ -906,11 +907,14 @@ contract SpeedFi is Context, IERC20, Ownable {
     function setBuyMaxTxAmount(uint256 bMaxTxAmount) external onlyOwner {
         require(bMaxTxAmount < (_tTotal*30)/100, "Cannot Set Max Buy More than 30% of the supply");
         _bMaxTxAmount = bMaxTxAmount;
+        emit MaxBuyTxAmount(_bMaxTxAmount);
     }
 
     function setSellMaxTxAmount(uint256 sMaxTxAmount) external onlyOwner {
         require(sMaxTxAmount < (_tTotal*10)/100, "Cannot Set Max Sell More than 10% of the supply");
         _sMaxTxAmount = sMaxTxAmount;
+        emit MaxSellTxAmount(_sMaxTxAmount);
+
     }
 
     function removeTxLimit() external onlyOwner {
@@ -920,14 +924,17 @@ contract SpeedFi is Context, IERC20, Ownable {
 
     function setMinTokensToSell(uint256 _minimumTokensBeforeSwap) external onlyOwner {
         minimumTokensBeforeSwap = _minimumTokensBeforeSwap;
+        emit MinTokenBeforeSwap(minimumTokensBeforeSwap);
     }
 
     function setMarketingAddress(address _marketingAddress) external onlyOwner {
+        require(_marketingAddress!=address(0),'Address Should not be 0');
         marketingAddress = payable(_marketingAddress);
         _isExcludedFromFee[marketingAddress] = true;
     }
 
     function setDevelopmentAddress(address _developmentAddress) external onlyOwner {
+        require(_developmentAddress!=address(0),'Address Should not be 0');
         developmentAddress = payable(_developmentAddress);
         _isExcludedFromFee[developmentAddress] = true;
     }
@@ -952,12 +959,18 @@ contract SpeedFi is Context, IERC20, Ownable {
         _buyLiquidityFee = _buyLiquidityPercent+_buyBurnsPercent+_buyMarketingPercent+_buyDevelopmentPercent;
         _sellLiquidityFee = _sellLiquidityPercent+ _sellMarketingPercent+_sellBurnsPercent+_sellDevelopmentPercent;
         _liquidityFee = _buyLiquidityPercent+_buyBurnsPercent+_buyMarketingPercent+_buyDevelopmentPercent;
+
+        emit BuyBurnFee(_buyBurnFee);
+        emit BuyMarketingFee(_buyMarketingFee);
+        emit BuyDevFee(_buyDevelopmentFee);
+        emit BuyLiquidityFee(_buyLiquidityFee);
+
+        emit SellBurnFee(_sellBurnFee);
+        emit SellMarketingFee(_sellMarketingFee);
+        emit SellDevFee(_sellDevelopmentFee);
+        emit SellLiquidityFee(_sellLiquidityFee);
     }
 
-
-    function transferToAddressBNB(address payable recipient, uint256 amount) private {
-        recipient.transfer(amount);
-    }
 
     function changeRouterVersion(address _router) public onlyOwner returns(address _pair) {
         IUniswapV2Router02 _uniswapV2Router = IUniswapV2Router02(_router);
@@ -991,7 +1004,7 @@ contract SpeedFi is Context, IERC20, Ownable {
 
     function addLiquidityToToken(uint256 tokenLiquifyAmount) private lockTheSwap{
         // split the contract balance into halves
-        uint256 half = tokenLiquifyAmount.div(2); //staking tokens to be swaped
+        uint256 half = tokenLiquifyAmount.div(2); //staking tokens to be swapped
         uint256 otherHalf = tokenLiquifyAmount.sub(half); //staking tokens not swapped
 
         // capture the contract's current BNB balance.
