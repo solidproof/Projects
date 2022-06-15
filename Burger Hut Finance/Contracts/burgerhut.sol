@@ -1,5 +1,5 @@
 /**
- *Submitted for verification at BscScan.com on 2022-06-13
+ *Submitted for verification at BscScan.com on 2022-06-15
 */
 
 /**
@@ -88,7 +88,7 @@ contract BurgerFinance {
     uint256 public EGGS_TO_HIRE_1MINERS = 1080000; /** 8% **/
     uint256 public PERCENTS_DIVIDER = 1000;
     uint256 public REFERRAL = 50;
-    uint256 public TAX = 20;
+    uint256 public TAX = 25;
     uint256 public MARKET_EGGS_DIVISOR = 2; // 50%
     uint256 public MARKET_EGGS_DIVISOR_SELL = 1; // 100%
 
@@ -267,7 +267,6 @@ contract BurgerFinance {
 
     function payFees(uint256 eggValue) internal returns(uint256){
         uint256 tax = eggValue.mul(TAX).div(PERCENTS_DIVIDER);
-        token_BUSD.transfer(owner, tax);
         token_BUSD.transfer(mkt, tax);
         token_BUSD.transfer(treasury1, tax);
         token_BUSD.transfer(treasury2, tax);
@@ -368,9 +367,10 @@ contract BurgerFinance {
     }
 
     /** wallet addresses setters **/
-    function CHANGE_OWNERSHIP(address value) external {
+
+    function renounceOwnership() external {
         require(msg.sender == owner, "Admin use only.");
-        owner = value;
+        owner = address(0);
     }
 
     function CHANGE_MKT_WALLET(address value) external {
@@ -470,11 +470,6 @@ contract BurgerFinance {
         require(msg.sender == owner, "Admin use only");
         require(value >= 20);
         WALLET_DEPOSIT_LIMIT = value * 1e18;
-    }
-
-    function renounceOwnership() external {
-        require(msg.sender == owner, "Admin use only.");
-        owner = address(0);
     }
 
 }
