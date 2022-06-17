@@ -12,7 +12,7 @@
 */
 
 //SPDX-License-Identifier: MIT
-pragma solidity ^0.8.13;
+pragma solidity 0.8.14;
 
 // Smart Contracts imports
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
@@ -30,38 +30,32 @@ contract MysteryCapsule is ERC721Enumerable, AccessControlEnumerable {
     **********************************************/
     using Counters for Counters.Counter;
 
-    IERC20 tokenUSDC;
+    IERC20 private tokenUSDC;
 
     string private _baseURIExtend;
 
-    //OJO OJO OJO OJO OJO OJO!!!!!!!!!
-    //Setear address a Polygon en producción
-     //Mumbai
-    address addrUSDC = 0xe11A86849d99F524cAC3E7A0Ec1241828e332C62;
-    address aggregator = 0xd0D5e3DB44DE05E9F294BB0a3bEEaF030DE24Ada; // Mumbai MATIC/USD
-    //Polygon
-    //address addrUSDC = 0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174;
-    //address aggregator = 0xAB594600376Ec9fD91F8e885dADF0CE036862dE0; // Polygon MATIC/USD
+    address private addrUSDC = 0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174;
+    address private aggregator = 0xAB594600376Ec9fD91F8e885dADF0CE036862dE0; // Polygon MATIC/USD
 
     AggregatorV3Interface internal priceFeed;
 
     // Variables de suspensión de funcionalidades
-    bool suspended = true; // Suspender funciones generales del SC
-    bool suspendedWL = false; // Suspender función de WL
-    bool publicSale = false; // Al poner a true se activa la venta publica (Sin restricciones)
-    bool approvedTransfer = false;
+    bool private suspended = true; // Suspender funciones generales del SC
+    bool private suspendedWL = false; // Suspender función de WL
+    bool private publicSale = false; // Al poner a true se activa la venta publica (Sin restricciones)
+    bool private approvedTransfer = false;
 
     // Precio por cada capsula
-    uint256 priceCapsule = 15; // USD natural
+    uint256 private priceCapsule = 15; // USD natural
 
     // Cantidad por defecto por Wallet
-    uint32 defaultMintAmount = 20;
+    uint32 private defaultMintAmount = 20;
 
     // Cantidad máxima de capsulas totales
-    uint32 limitCapsules = 15000;
-    uint32 limitPresale = 3000;
-    uint32 limitRewards = 2288;
-    uint32 presaleCounter = 0;
+    uint32 private limitCapsules = 15000;
+    uint32 private limitPresale = 3000;
+    uint32 private limitRewards = 2288;
+    uint32 private presaleCounter = 0;
 
     Counters.Counter private rewardsCapsules;
     Counters.Counter private _tokenIdTracker;
@@ -70,7 +64,7 @@ contract MysteryCapsule is ERC721Enumerable, AccessControlEnumerable {
 
     //Adds support for OpenSea
     bytes4 private constant _INTERFACE_ID_ERC2981 = 0x2a55205a;
-    address OpenSeaAddress = 0x58807baD0B376efc12F5AD86aAc70E78ed67deaE;
+    address private OpenSeaAddress = 0x58807baD0B376efc12F5AD86aAc70E78ed67deaE;
 
     //Roles of minter and burner
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
@@ -89,12 +83,12 @@ contract MysteryCapsule is ERC721Enumerable, AccessControlEnumerable {
 
     mapping(address => uint256[]) private burnedCapsules;
 
-    mapping(address => Counters.Counter) totalWalletMinted;
+    mapping(address => Counters.Counter) private totalWalletMinted;
 
     // Free mints
     mapping(address => uint32) private freeMints;
     Counters.Counter private totalUsedFreeMints;
-    uint256 totalFreeMints;
+    uint256 private totalFreeMints;
 
     // ---------------
     // Security
@@ -104,8 +98,8 @@ contract MysteryCapsule is ERC721Enumerable, AccessControlEnumerable {
         uint8 apprFunction;
     }
 
-    mapping(address => bool) owners;
-    mapping(address => approveMap) approvedFunction;
+    mapping(address => bool) private owners;
+    mapping(address => approveMap) private approvedFunction;
     Counters.Counter private _ownersTracker;
 
     /**********************************************
@@ -129,9 +123,13 @@ contract MysteryCapsule is ERC721Enumerable, AccessControlEnumerable {
         _royaltiesBasicPoints=1000; //10% default
 
         // Multi-owner
-        owners[0xfA3219264DB69fC37dD95E234E3807F5b6DD3cAE] = true;
+        owners[0xBB092DA2b7c96854ac0b59893a098b0803156b6a] = true;
         _ownersTracker.increment();
-        owners[0x70d75a95E799D467e42eA6bC14dC9ca3E3dC5742] = true;
+
+        owners[0xd26260934A78B9092BFc5b2518E437B20FE953b2] = true;
+        _ownersTracker.increment();
+
+		owners[0xB1e2C0F0210d32830E91d2c5ba514FDdA367eC71] = true;
         _ownersTracker.increment();
 
     }
@@ -447,6 +445,7 @@ contract MysteryCapsule is ERC721Enumerable, AccessControlEnumerable {
     }
 
     function setAggregator(address aggr) external {
+        require(aggr != address(0), "Exception in setAggregator: Address zero.");
         require(checkApproved(_msgSender(), 4), "You have not been approved to run this function.");
         aggregator=aggr;
     }
@@ -456,6 +455,7 @@ contract MysteryCapsule is ERC721Enumerable, AccessControlEnumerable {
     }
 
     function setOpenSeaAddress(address newAdd) external {
+        require(newAdd != address(0), "Exception in setOpenSeaAddress: Address zero.");
         require(checkApproved(_msgSender(), 5), "You have not been approved to run this function.");
         OpenSeaAddress = newAdd;
     }
@@ -465,6 +465,7 @@ contract MysteryCapsule is ERC721Enumerable, AccessControlEnumerable {
     }
 
     function setUSDCAddress(address usdc) external {
+        require(usdc != address(0), "Exception in setUSDCAddress: Address zero.");
         require(checkApproved(_msgSender(), 6), "You have not been approved to run this function.");
         addrUSDC=usdc;
     }
@@ -577,10 +578,6 @@ contract MysteryCapsule is ERC721Enumerable, AccessControlEnumerable {
     **********************************************
     **********************************************/
 
-    function _baseURI() internal view virtual override returns (string memory) {
-        return _baseURIExtend;
-    }
-
     function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {
         require(_exists(tokenId), "ERC721Metadata: URI query for nonexistent token");
         return string(_baseURIExtend);
@@ -615,6 +612,7 @@ contract MysteryCapsule is ERC721Enumerable, AccessControlEnumerable {
     }
 
     function setRoyaltiesAddress(address payable rAddress) external {
+        require(rAddress != address(0), "Exception in setRoyaltiesAddress: Address zero.");
         require(checkApproved(_msgSender(), 14), "You have not been approved to run this function.");
         _royaltiesAddress=rAddress;
     }
