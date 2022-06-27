@@ -16,21 +16,30 @@ interface ITreasury {
 
 contract RVLT is Initializable,UUPSUpgradeable,ERC20Upgradeable, ERC20PermitUpgradeable, ERC20VotesUpgradeable,ERC20VotesCompUpgradeable, OwnableUpgradeable, PausableUpgradeable {
     using SafeMathUpgradeable for uint256;
+    // treasury address
     address public treasury;
+    // tax fee percent
     uint256 public tax;
+    // mapping to whitelist address
     mapping(address => bool) public whitelistedAddress;
 
     event TreasuryAddressUpdated(address newTreasury);
     event WhitelistAddressUpdated(address whitelistAccount, bool value);
     event TaxUpdated(uint256 taxAmount);
 
-    function initialize(        
+    /**
+      * @notice initialize params
+      * @param initialHolder address to hold tokens
+      * @param initialSupply initial supply
+      */
+    function initialize(
         address initialHolder,
         uint256 initialSupply
         ) public initializer {
+        require(initialHolder != address(0),"initialize: Invalid address");
         OwnableUpgradeable.__Ownable_init();
-        ERC20Upgradeable.__ERC20_init("Revolt DAO", "RVLT");
-        ERC20PermitUpgradeable.__ERC20Permit_init("rvlt");
+        ERC20Upgradeable.__ERC20_init("Revolt 2 Earn", "RVLT");
+        ERC20PermitUpgradeable.__ERC20Permit_init("RVLT");
         ERC20VotesUpgradeable.__ERC20Votes_init_unchained();
         __Pausable_init_unchained();
         ERC20VotesCompUpgradeable.__ERC20VotesComp_init_unchained();
@@ -69,6 +78,10 @@ contract RVLT is Initializable,UUPSUpgradeable,ERC20Upgradeable, ERC20PermitUpgr
         super._burn(account, amount);
     }
 
+    /**
+      * @notice Set treasury address
+      * @param _treasury The address of treasury
+      */
     function setTreasuryAddress(address _treasury) external onlyOwner{
         require(_treasury != address(0), "setTreasuryAddress: Zero address");
         treasury = _treasury;
@@ -76,12 +89,21 @@ contract RVLT is Initializable,UUPSUpgradeable,ERC20Upgradeable, ERC20PermitUpgr
         emit TreasuryAddressUpdated(_treasury);
     }
 
+    /**
+      * @notice Whitelist address to make address tax free
+      * @param _whitelist address for whitelist
+      * @param _status Bool status of whitelist
+      */
     function setWhitelistAddress(address _whitelist, bool _status) external onlyOwner{
         require(_whitelist != address(0), "setWhitelistAddress: Zero address");
         whitelistedAddress[_whitelist] = _status;
         emit WhitelistAddressUpdated(_whitelist, _status);
     }
 
+    /**
+      * @notice Set Tax Fee value
+      * @param _tax The value for tax fee to transfer token
+      */
     function setTax(uint256 _tax) external onlyOwner{
         tax = _tax;
         emit TaxUpdated(tax);
@@ -100,7 +122,7 @@ contract RVLT is Initializable,UUPSUpgradeable,ERC20Upgradeable, ERC20PermitUpgr
         address sender,
         address recipient,
         uint256 amount
-    ) internal virtual override{      
+    ) internal virtual override{
         if(whitelistedAddress[sender] || whitelistedAddress[recipient]){
             super._transfer(sender,recipient,amount);
         }else{
