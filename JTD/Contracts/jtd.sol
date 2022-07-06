@@ -1,4 +1,10 @@
-// JeetsAreFucked69 - Special Deploy For Audit
+/**
+ *Submitted for verification at BscScan.com on 2022-07-05
+*/
+
+/*
+JTD - audit corrections, test deployment
+*/
 
 // Code written by MrGreenCrypto
 // SPDX-License-Identifier: None
@@ -60,18 +66,17 @@ interface IDEXPair {
     function sync() external;
 }
 
-contract JeetsAreFucked is IBEP20 {
-    string constant _name = "JeetsAreFucked69";
-    string constant _symbol = "JAF69";
-    uint8 constant _decimals = 9;
-    uint256 _totalSupply = 1_000_000_000 * (10**_decimals);
+contract JoinTheDiamonds is IBEP20 {
+    string private constant _name = "JoinTheDiamondsAudit";
+    string private constant _symbol = "JTDAudit";
+    uint8 private constant _decimals = 9;
+    uint256 private constant _totalSupply = 1_000_000_000 * (10**_decimals);
 
     mapping(address => uint256) private _balances;
     mapping(address => mapping(address => uint256)) private _allowances;
     mapping(address => bool) public addressWithoutLimits;
     mapping(address => bool) public addressNotGettingRewards;
     mapping(address => uint256) private shareholderIndexes;
-    mapping(address => uint256) private lastClaim;
     mapping(address => Share) private shares;
     mapping(address => uint256) private lastSell;
 
@@ -95,11 +100,10 @@ contract JeetsAreFucked is IBEP20 {
     uint256 private totalRewards;
     uint256 private totalDistributed;
     uint256 private rewardsPerShare;
-    uint256 private veryLargeNumber = 10**36;
+    uint256 private constant veryLargeNumber = 10**36;
     uint256 private busdBalanceBefore;
     uint256 private rewardsToSendPerTx = 5;
-    uint256 private minTokensForRewards = 500_000 * (10**_decimals);
-    uint256 private minDistribution = 1 ether;
+    uint256 private constant minTokensForRewards = 500_000 * (10**_decimals);
     uint256 private lastRewardsTime;
     uint256 private timeBetweenRewards = 20 minutes;
     uint256 private currentIndex;
@@ -117,10 +121,10 @@ contract JeetsAreFucked is IBEP20 {
     IDEXRouter private router = IDEXRouter(0x10ED43C718714eb63d5aA57B78B54704E256024E);
     IBEP20 private constant BUSD = IBEP20(0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56);
     address private constant CEO = 0xe6497e1F2C5418978D5fC2cD32AA23315E7a41Fb;
+    address private constant WETH = 0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c;
     address public marketingWallet = 0xe6497e1F2C5418978D5fC2cD32AA23315E7a41Fb;
     address public diamondVaultAddress = 0xe6497e1F2C5418978D5fC2cD32AA23315E7a41Fb;
     address public pair;
-    address private WETH = 0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c;
     address[] private shareholders;
     address[] private pathForBuyingBUSD = new address[](2);
     address[] private pathForSellingJTD = new address[](2);
@@ -159,7 +163,7 @@ contract JeetsAreFucked is IBEP20 {
 
     receive() external payable {}
     function name() public pure override returns (string memory) {return _name;}
-    function totalSupply() public view override returns (uint256) {return _totalSupply;}
+    function totalSupply() public pure override returns (uint256) {return _totalSupply;}
     function decimals() public pure override returns (uint8) {return _decimals;}
     function symbol() public pure override returns (string memory) {return _symbol;}
     function balanceOf(address account) public view override returns (uint256) {return _balances[account];}
@@ -206,7 +210,6 @@ contract JeetsAreFucked is IBEP20 {
 
     function _basicTransfer(address sender, address recipient, uint256 amount) internal returns (bool) {
         _lowGasTransfer(sender, recipient, amount);
-
         if (!addressNotGettingRewards[sender]) setShare(sender);
         if (!addressNotGettingRewards[recipient]) setShare(recipient);
         process();
@@ -214,22 +217,27 @@ contract JeetsAreFucked is IBEP20 {
     }
 
     function _transferFrom(address sender, address recipient, uint256 amount) internal returns (bool) {
-        if (
-            isSwapping == true ||
-            addressWithoutLimits[sender] == true ||
-            addressWithoutLimits[recipient] == true
-        ) return _lowGasTransfer(sender, recipient, amount);
+        if (isSwapping) return _lowGasTransfer(sender, recipient, amount);
+
+        if(addressWithoutLimits[sender] || addressWithoutLimits[recipient]) return _basicTransfer(sender, recipient, amount);
 
         if (launchTime > block.timestamp) return true;
 
         if (conditionsToSwapAreMet(sender)) letTheContractSell();
-        amount = jeetTaxActive ? takeJeetTax (sender, recipient, amount) : takeTax(sender, amount);
+
+        amount = jeetTaxActive ? takeJeetTax (sender, recipient, amount) : takeTax(sender, recipient, amount);
         return _basicTransfer(sender, recipient, amount);
     }
 
-    function takeTax(address sender, uint256 amount) internal returns (uint256) {
+    function takeTax(address sender, address recipient, uint256 amount) internal returns (uint256) {
         uint256 taxAmount = (amount * tax * sellMultiplier) / taxDivisor;
-        if (sender == pair) taxAmount /= sellMultiplier;
+        if (recipient == pair) require(amount <= maxSell, "Exceeds max sell");
+
+        if (sender == pair) {
+            require(_balances[recipient] + amount <= maxWallet, "Exceeds max wallet");
+            taxAmount /= sellMultiplier;
+        }
+
         if (taxAmount > 0) _lowGasTransfer(sender, address(this), taxAmount);
         return amount - taxAmount;
     }
@@ -239,7 +247,7 @@ contract JeetsAreFucked is IBEP20 {
 
         if (recipient == pair){
             require(amount <= maxSell, "Exceeds max sell");
-            uint256 jeetTaxAmount = (amount * jeetTax) / 100;
+            uint256 jeetTaxAmount = amount * jeetTax / 100;
 
             if (letTheJeetsOutParty) {
                 if(sells <= jeetTax) jeetTaxAmount = amount * (jeetTax - sells) / 100;
@@ -306,13 +314,15 @@ contract JeetsAreFucked is IBEP20 {
     function letTheContractSell() internal {
         uint256 tokensThatTheContractWillSell = (_balances[address(this)] - tokensFromJeetTax ) * (tax - liq) / tax + tokensFromJeetTax;
 
-        router.swapExactTokensForETHSupportingFeeOnTransferTokens(
-            tokensThatTheContractWillSell,
-            0,
-            pathForSellingJTD,
-            address(this),
-            block.timestamp
-        );
+        if(tokensThatTheContractWillSell > 0){
+            router.swapExactTokensForETHSupportingFeeOnTransferTokens(
+                tokensThatTheContractWillSell,
+                0,
+                pathForSellingJTD,
+                address(this),
+                block.timestamp
+            );
+        }
 
         uint256 bnbToRewards = (address(this).balance * tokensFromJeetTax) / tokensThatTheContractWillSell;
         tokensFromJeetTax = 0;
@@ -349,7 +359,6 @@ contract JeetsAreFucked is IBEP20 {
     function setShare(address shareholder) internal {
         if (shares[shareholder].amount >= minTokensForRewards) distributeRewards(shareholder);
 
-
         if (shares[shareholder].amount == 0 && _balances[shareholder] >= minTokensForRewards) addShareholder(shareholder);
 
         if (shares[shareholder].amount >= minTokensForRewards && _balances[shareholder] < minTokensForRewards) {
@@ -381,7 +390,7 @@ contract JeetsAreFucked is IBEP20 {
 
     function distributeRewards(address shareholder) internal {
         uint256 amount = getUnpaidEarnings(shareholder);
-        if (amount < minDistribution) return;
+        if (amount < 1 ether) return;
 
         BUSD.transfer(shareholder, amount);
         totalDistributed = totalDistributed + amount;
@@ -420,6 +429,7 @@ contract JeetsAreFucked is IBEP20 {
     }
 
     function setWallets(address marketingAddress, address diamondAddress) external onlyOwner {
+        require(marketingAddress != address(0) && diamondAddress != address(0), "Have to be valid addresses");
         marketingWallet = marketingAddress;
         diamondVaultAddress = diamondAddress;
     }
@@ -429,21 +439,21 @@ contract JeetsAreFucked is IBEP20 {
         uint256 _buysUntilEvent,
         uint256 _minPartyBuyInBusd,
         uint256 _minPartySellInBusd,
-        uint256 sellDelayInMinutes
+        uint256 sellDelayInSeconds
     ) external onlyOwner {
         require(
             _buysToStopEvent >= 10 &&
             _buysUntilEvent >= 10 &&
             _minPartySellInBusd < 100 &&
             _minPartyBuyInBusd < 100 &&
-            sellDelayInMinutes < 6
+            sellDelayInSeconds < 360
         , "Safety feature");
 
         buysToStopEvent = _buysToStopEvent;
         buysUntilEvent = _buysUntilEvent;
         minPartySell = _minPartySellInBusd;
         minPartyBuy = _minPartyBuyInBusd;
-        sellDelay = sellDelayInMinutes * 1 minutes;
+        sellDelay = sellDelayInSeconds;
     }
 
     function setRewardParameters(uint256 _rewardsToSendPerTx, uint256 minutesBetweenRewards) external onlyOwner {
@@ -463,17 +473,7 @@ contract JeetsAreFucked is IBEP20 {
         maxSell = _maxSell;
     }
 
-    function addBNBToRewardsManually() external payable {
-        if (msg.value > 0) swapForBUSDRewards(msg.value);
-    }
 
-    function rescueAnyToken(address token) external onlyOwner {
-        IBEP20(token).transfer(msg.sender, IBEP20(token).balanceOf(address(this)));
-    }
-
-    function rescueBnb() external onlyOwner {
-        payable(msg.sender).transfer(address(this).balance);
-    }
 
     function jeetTaxRevival(uint256 _initialJeetTax, uint256 _hoursUntilJeetTaxDecrease) external onlyOwner {
         timeUntilJeetTaxDecrease = _hoursUntilJeetTaxDecrease * 1 hours;
@@ -481,6 +481,7 @@ contract JeetsAreFucked is IBEP20 {
         launchTime = block.timestamp;
         jeetTaxActive = true;
         require(initialJeetTax < 40, "Let the jeets out if they want");
+        require(timeUntilJeetTaxDecrease > 0, "Safety feature to avoid division by 0");
     }
 
     function setTax(
@@ -506,6 +507,19 @@ contract JeetsAreFucked is IBEP20 {
 
     function setAddressNotGettingRewards(address _addressNotGettingRewards, bool status) external onlyOwner {
         addressNotGettingRewards[_addressNotGettingRewards] = status;
+    }
+
+    function addBNBToRewardsManually() external payable {
+        if (msg.value > 0) swapForBUSDRewards(msg.value);
+    }
+
+    function rescueAnyToken(address token) external onlyOwner {
+        require(token != address(this), "Can't rescue JTD");
+        IBEP20(token).transfer(msg.sender, IBEP20(token).balanceOf(address(this)));
+    }
+
+    function rescueBnb() external onlyOwner {
+        payable(msg.sender).transfer(address(this).balance);
     }
 
     function launch() external payable onlyOwner {
