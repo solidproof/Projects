@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Unlicensed
 
-pragma solidity ^0.8.4;
+pragma solidity 0.8.4;
 
 interface IERC20 {
     function totalSupply() external view returns (uint256);
@@ -103,7 +103,7 @@ contract Ownable {
     }
 
     modifier onlyOwner() {
-        require(isOwner());
+        require(isOwner(), "Must be called by Owner");
         _;
     }
 
@@ -121,7 +121,7 @@ contract Ownable {
     }
 
     function _transferOwnership(address newOwner) internal {
-        require(newOwner != address(0));
+        require(newOwner != address(0), "Owner can't be zero address");
         emit OwnershipTransferred(_owner, newOwner);
         _owner = newOwner;
     }
@@ -165,17 +165,17 @@ contract Survivor is ERC20Detailed, Ownable {
         uint256 jackpot; // Jackpot
     }
 
-    Fees buyFees = Fees(20, 40, 50, 30, 20, 0); // 16%
+    Fees public buyFees = Fees(20, 40, 50, 30, 20, 0); // 16%
 
     bool public buyFeesEnabled = true;
 
-    Fees sellFeesWeekOne = Fees(60, 70, 60, 40, 70, 30); // 33%
-    Fees sellFeesWeekTwo = Fees(40, 50, 60, 30, 70, 30); // 28%
-    Fees sellFeesForever = Fees(40, 50, 60, 20, 30, 10); // 21%
+    Fees public sellFeesWeekOne = Fees(60, 70, 60, 40, 70, 30); // 33%
+    Fees public sellFeesWeekTwo = Fees(40, 50, 60, 30, 70, 30); // 28%
+    Fees public sellFeesForever = Fees(40, 50, 60, 20, 30, 10); // 21%
 
     bool public sellFeesEnabled = true;
 
-    uint256 feeDenominator = 1000;
+    uint256 public constant feeDenominator = 1000;
 
     uint256 private constant MAX_INT = 2**256 - 1;
     uint256 private constant MAX_SHARES = MAX_INT - (MAX_INT % MAX_SUPPLY);
@@ -186,7 +186,7 @@ contract Survivor is ERC20Detailed, Ownable {
     uint256 public _totalSupply;
 
     address public routerAddress;
-    IPancakeSwapRouter router;
+    IPancakeSwapRouter public router;
 
     address public treasuryAddress;
     uint256 private _pendingTreasury;
@@ -237,8 +237,6 @@ contract Survivor is ERC20Detailed, Ownable {
     mapping(address => bool) private _mayTransfer;
     mapping(address => mapping(address => uint256)) private _allowedFragments;
 
-    mapping(address => bool) private _mayNotEarnReflections;
-
     bool inSwap = false;
 
     // MODIFIERS
@@ -249,6 +247,8 @@ contract Survivor is ERC20Detailed, Ownable {
     }
 
     // CUSTOM ERRORS
+    error ZeroAddressUsed();
+
     error NotAuthorizedToTransfer(address from, address to);
 
     error AlreadyWhitelisted(address wallet);
@@ -276,11 +276,18 @@ contract Survivor is ERC20Detailed, Ownable {
         address lifeLineAddress_,
         address rationPoolAddress_,
         address jackpotAddress_
-    )
-        // ) ERC20Detailed("Test Tokens", "TT", uint8(DECIMALS)) Ownable() {
-        ERC20Detailed("Health Points", "HP", uint8(DECIMALS))
-        Ownable()
-    {
+    ) ERC20Detailed("Health Points", "HP", uint8(DECIMALS)) Ownable() {
+        if (
+            routerAddress_ == address(0) ||
+            treasuryAddress_ == address(0) ||
+            lifeLockAddress_ == address(0) ||
+            lifeLineAddress_ == address(0) ||
+            rationPoolAddress_ == address(0) ||
+            jackpotAddress_ == address(0)
+        ) {
+            revert ZeroAddressUsed();
+        }
+
         routerAddress = routerAddress_;
         router = IPancakeSwapRouter(routerAddress);
 
@@ -826,6 +833,16 @@ contract Survivor is ERC20Detailed, Ownable {
         address rationPoolAddress_,
         address jackpotAddress_
     ) external onlyOwner {
+        if (
+            treasuryAddress_ == address(0) ||
+            lifeLockAddress_ == address(0) ||
+            lifeLineAddress_ == address(0) ||
+            rationPoolAddress_ == address(0) ||
+            jackpotAddress_ == address(0)
+        ) {
+            revert ZeroAddressUsed();
+        }
+
         treasuryAddress = treasuryAddress_;
         lifeLockAddress = lifeLockAddress_;
         lifeLineAddress = lifeLineAddress_;
@@ -851,17 +868,6 @@ contract Survivor is ERC20Detailed, Ownable {
 
     function toggleTransfers(address wallet) external onlyOwner {
         _mayTransfer[wallet] = !_mayTransfer[wallet];
-    }
-
-    function Sweep() external onlyOwner {
-        uint256 balance = address(this).balance;
-        payable(msg.sender).transfer(balance);
-    }
-
-    function SweepToken(address _token) external onlyOwner {
-        IERC20 token = IERC20(_token);
-        uint256 balance = token.balanceOf(address(this));
-        token.transfer(msg.sender, balance);
     }
 
     receive() external payable {}
