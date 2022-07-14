@@ -2,98 +2,11 @@
 
 pragma solidity 0.8.9;
 
-interface IERC20 {
-    function totalSupply() external view returns (uint256);
+import "@openzeppelin/contracts/utils/Context.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
-    function balanceOf(address account) external view returns (uint256);
-
-    function transfer(address recipient, uint256 amount)
-        external
-        returns (bool);
-
-    function allowance(address owner, address spender)
-        external
-        view
-        returns (uint256);
-
-    function approve(address spender, uint256 amount) external returns (bool);
-
-    function transferFrom(
-        address sender,
-        address recipient,
-        uint256 amount
-    ) external returns (bool);
-
-    event Transfer(address indexed from, address indexed to, uint256 value);
-
-    event Approval(
-        address indexed owner,
-        address indexed spender,
-        uint256 value
-    );
-
-    function name() external view returns (string memory);
-
-    function symbol() external view returns (string memory);
-
-    function decimals() external view returns (uint8);
-}
-
-abstract contract Context {
-    function _msgSender() internal view virtual returns (address) {
-        return msg.sender;
-    }
-
-    function _msgData() internal view virtual returns (bytes calldata) {
-        return msg.data;
-    }
-}
-
-abstract contract Ownable is Context {
-    address private _owner;
-
-    event OwnershipTransferred(
-        address indexed previousOwner,
-        address indexed newOwner
-    );
-
-    constructor() {
-        _transferOwnership(_msgSender());
-    }
-
-    modifier onlyOwner() {
-        _checkOwner();
-        _;
-    }
-
-    function owner() public view virtual returns (address) {
-        return _owner;
-    }
-
-    function _checkOwner() internal view virtual {
-        require(owner() == _msgSender(), "Ownable: caller is not the owner");
-    }
-
-    function renounceOwnership() public virtual onlyOwner {
-        _transferOwnership(address(0));
-    }
-
-    function transferOwnership(address newOwner) public virtual onlyOwner {
-        require(
-            newOwner != address(0),
-            "Ownable: new owner is the zero address"
-        );
-        _transferOwnership(newOwner);
-    }
-
-    function _transferOwnership(address newOwner) internal virtual {
-        address oldOwner = _owner;
-        _owner = newOwner;
-        emit OwnershipTransferred(oldOwner, newOwner);
-    }
-}
-
-contract Token is Context, IERC20, Ownable {
+contract Token is Context, IERC20Metadata, Ownable {
     mapping(address => uint256) private _balances;
 
     mapping(address => mapping(address => uint256)) private _allowances;
@@ -206,23 +119,23 @@ contract Token is Context, IERC20, Ownable {
         return true;
     }
 
-    function allowance(address owner, address spender)
+    function allowance(address from, address to)
         public
         view
         virtual
         override
         returns (uint256)
     {
-        return _allowances[owner][spender];
+        return _allowances[from][to];
     }
 
-    function approve(address spender, uint256 amount)
+    function approve(address to, uint256 amount)
         public
         virtual
         override
         returns (bool)
     {
-        _approve(_msgSender(), spender, amount);
+        _approve(_msgSender(), to, amount);
         return true;
     }
 
@@ -245,31 +158,27 @@ contract Token is Context, IERC20, Ownable {
         return true;
     }
 
-    function increaseAllowance(address spender, uint256 addedValue)
+    function increaseAllowance(address to, uint256 addedValue)
         public
         virtual
         returns (bool)
     {
-        _approve(
-            _msgSender(),
-            spender,
-            _allowances[_msgSender()][spender] + addedValue
-        );
+        _approve(_msgSender(), to, _allowances[_msgSender()][to] + addedValue);
         return true;
     }
 
-    function decreaseAllowance(address spender, uint256 subtractedValue)
+    function decreaseAllowance(address to, uint256 subtractedValue)
         public
         virtual
         returns (bool)
     {
-        uint256 currentAllowance = _allowances[_msgSender()][spender];
+        uint256 currentAllowance = _allowances[_msgSender()][to];
         require(
             currentAllowance >= subtractedValue,
             "ERC20: decreased allowance below zero"
         );
         unchecked {
-            _approve(_msgSender(), spender, currentAllowance - subtractedValue);
+            _approve(_msgSender(), to, currentAllowance - subtractedValue);
         }
 
         return true;
@@ -322,14 +231,14 @@ contract Token is Context, IERC20, Ownable {
     }
 
     function _approve(
-        address owner,
-        address spender,
+        address from,
+        address to,
         uint256 amount
     ) internal virtual {
-        require(owner != address(0), "ERC20: approve from the zero address");
-        require(spender != address(0), "ERC20: approve to the zero address");
+        require(from != address(0), "ERC20: approve from the zero address");
+        require(to != address(0), "ERC20: approve to the zero address");
 
-        _allowances[owner][spender] = amount;
-        emit Approval(owner, spender, amount);
+        _allowances[from][to] = amount;
+        emit Approval(from, to, amount);
     }
 }
