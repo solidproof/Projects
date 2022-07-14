@@ -1,10 +1,9 @@
+// SPDX-License-Identifier: MIT
 
 // File: contracts/SafeCast.sol
-
-
 // OpenZeppelin Contracts v4.4.1 (utils/math/SafeCast.sol)
 
-pragma solidity ^0.8.0;
+pragma solidity 0.8.2;
 
 /**
  * @dev Wrappers over Solidity's uintXX/intXX casting operators with added overflow
@@ -244,8 +243,6 @@ library SafeCast {
 }
 
 // File: contracts/Math.sol
-
-
 // OpenZeppelin Contracts v4.4.1 (utils/math/Math.sol)
 
 pragma solidity ^0.8.0;
@@ -288,12 +285,9 @@ library Math {
         return a / b + (a % b == 0 ? 0 : 1);
     }
 }
+
 // File: contracts/Counters.sol
-
-
 // OpenZeppelin Contracts v4.4.1 (utils/Counters.sol)
-
-pragma solidity ^0.8.0;
 
 /**
  * @title Counters
@@ -333,12 +327,9 @@ library Counters {
         counter._value = 0;
     }
 }
+
 // File: contracts/Strings.sol
-
-
 // OpenZeppelin Contracts v4.4.1 (utils/Strings.sol)
-
-pragma solidity ^0.8.0;
 
 /**
  * @dev String operations.
@@ -404,12 +395,7 @@ library Strings {
 }
 
 // File: contracts/ECDSA.sol
-
-
 // OpenZeppelin Contracts v4.4.1 (utils/cryptography/ECDSA.sol)
-
-pragma solidity ^0.8.0;
-
 
 /**
  * @dev Elliptic Curve Digital Signature Algorithm (ECDSA) operations.
@@ -638,13 +624,9 @@ library ECDSA {
         return keccak256(abi.encodePacked("\x19\x01", domainSeparator, structHash));
     }
 }
+
 // File: contracts/draft-EIP712.sol
-
-
 // OpenZeppelin Contracts v4.4.1 (utils/cryptography/draft-EIP712.sol)
-
-pragma solidity ^0.8.0;
-
 
 /**
  * @dev https://eips.ethereum.org/EIPS/eip-712[EIP 712] is a standard for hashing and signing of typed structured data.
@@ -745,11 +727,7 @@ abstract contract EIP712 {
 }
 
 // File: contracts/draft-IERC20Permit.sol
-
-
 // OpenZeppelin Contracts v4.4.1 (token/ERC20/extensions/draft-IERC20Permit.sol)
-
-pragma solidity ^0.8.0;
 
 /**
  * @dev Interface of the ERC20 Permit extension allowing approvals to be made via signatures, as defined in
@@ -806,12 +784,9 @@ interface IERC20Permit {
     // solhint-disable-next-line func-name-mixedcase
     function DOMAIN_SEPARATOR() external view returns (bytes32);
 }
+
 // File: contracts/IERC20.sol
-
-
 // OpenZeppelin Contracts v4.4.1 (token/ERC20/IERC20.sol)
-
-pragma solidity ^0.8.0;
 
 /**
  * @dev Interface of the ERC20 standard as defined in the EIP.
@@ -890,13 +865,9 @@ interface IERC20 {
      */
     event Approval(address indexed owner, address indexed spender, uint256 value);
 }
+
 // File: contracts/IERC20MetaData.sol
-
-
 // OpenZeppelin Contracts v4.4.1 (token/ERC20/extensions/IERC20Metadata.sol)
-
-pragma solidity ^0.8.0;
-
 
 /**
  * @dev Interface for the optional metadata functions from the ERC20 standard.
@@ -922,7 +893,6 @@ interface IERC20Metadata is IERC20 {
 // File: contracts/BananaRouter.sol
 
 
-pragma solidity ^0.8.0;
 /*
 *
 *  Uniswap Router 01 and 02 Interfaces. Needed with Factory
@@ -1063,10 +1033,9 @@ interface IUniswapV2Router02 is IUniswapV2Router01 {
         uint deadline
     ) external;
 }
+
 // File: contracts/BananaFactory.sol
 
-
-pragma solidity ^0.8.0;
 /*
 *
 *  UniswapV2 Pair and Factory Interfaces Needed with Router to swap tokens
@@ -1140,12 +1109,11 @@ interface IUniswapV2Factory {
     function setFeeTo(address) external;
     function setFeeToSetter(address) external;
 }
+
 // File: contracts/LazyMath.sol
 
-
-pragma solidity ^0.8.0;
 /*
-*  A tweaked version of SafeMath from Openzeppelin.
+*  A version of SafeMath from Openzeppelin.
 *  In the jungle we call it LazyMath
 *
 *
@@ -1253,12 +1221,9 @@ library SafeMathUint {
     return b;
   }
 }
+
 // File: contracts/Context.sol
-
-
 // OpenZeppelin Contracts v4.4.1 (utils/Context.sol)
-
-pragma solidity ^0.8.0;
 
 /**
  * @dev Provides information about the current execution context, including the
@@ -1279,15 +1244,9 @@ abstract contract Context {
         return msg.data;
     }
 }
+
 // File: contracts/BANANA20.sol
-
-
 // OpenZeppelin Contracts v4.4.1 (token/ERC20/ERC20.sol)
-
-pragma solidity ^0.8.0;
-
-
-
 
 /**
  * @dev Implementation of the {IERC20} interface.
@@ -1636,17 +1595,9 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
         uint256 amount
     ) internal virtual {}
 }
+
 // File: contracts/draft-ERC20Permit.sol
-
-
 // OpenZeppelin Contracts v4.4.1 (token/ERC20/extensions/draft-ERC20Permit.sol)
-
-pragma solidity ^0.8.0;
-
-
-
-
-
 
 /**
  * @dev Implementation of the ERC20 Permit extension allowing approvals to be made via signatures, as defined in
@@ -1724,16 +1675,9 @@ abstract contract ERC20Permit is ERC20, IERC20Permit, EIP712 {
         nonce.increment();
     }
 }
+
 // File: contracts/ERC20Votes.sol
-
-
 // OpenZeppelin Contracts v4.4.1 (token/ERC20/extensions/ERC20Votes.sol)
-
-pragma solidity ^0.8.0;
-
-
-
-
 
 /**
  * @dev Extension of ERC20 to support Compound-like voting and delegation. This version is more generic than Compound's,
@@ -1983,13 +1927,9 @@ abstract contract ERC20Votes is ERC20Permit {
         return a - b;
     }
 }
+
 // File: contracts/Ownable.sol
-
-
 // OpenZeppelin Contracts v4.4.1 (access/Ownable.sol)
-
-pragma solidity ^0.8.0;
-
 
 /**
  * @dev Contract module which provides a basic access control mechanism, where
@@ -2060,19 +2000,10 @@ abstract contract Ownable is Context {
         emit OwnershipTransferred(oldOwner, newOwner);
     }
 }
+
 // File: contracts/BananaClubTokenV.sol
-
-
-
-
-
-
-
-
-
-
-pragma solidity 0.8.2;
 //File: BananaToken.sol
+
 /*
 *         
 */
@@ -2082,7 +2013,6 @@ contract BananaClubToken is ERC20, ERC20Permit, ERC20Votes, Ownable {
     IUniswapV2Router02 public uniswapV2Router;
     address public uniswapV2Pair;
 
-    mapping (address => bool) private _stopTrade;
     bool private _swapping;
 
     address public treasury;
@@ -2112,7 +2042,7 @@ contract BananaClubToken is ERC20, ERC20Permit, ERC20Votes, Ownable {
     uint256 private _tokensForBuyBack;
     
     /******************/
-    // exlcude from fees and max transaction amount
+    // exclude from fees and max transaction amount
     mapping (address => bool) private _isExcludedFromFees;
     mapping (address => bool) public _isExcludedMaxTransactionAmount;
 
@@ -2122,9 +2052,21 @@ contract BananaClubToken is ERC20, ERC20Permit, ERC20Votes, Ownable {
 
     event ExcludeFromFees(address indexed account, bool isExcluded);
     event SetAutomatedMarketMakerPair(address indexed pair, bool indexed value);
-    event TreasuryUpdated(address indexed newAddress, address indexed oldAddress);
-    event BuyBackUpdated(address indexed newAddress, address indexed oldAddress);
+    event TreasuryUpdated(address newAddress);
+    event BuyBackUpdated(address newAddress);
     event LPSwap(uint256 tokensSwapped, uint256 ethReceived, uint256 tokensIntoLiquidity);
+    event tradingEnabled(bool tradingActive);
+    event MaxTxnUpdated(uint256 newNum);
+    event MaxWalletAmount(uint256 newNum);
+    event MaxTxnExcluded(address updAds);
+    event BuyFeeUpdated(uint256 marketingFee, uint256 liquidityFee, uint256 buyBackFee);
+    event SellFeeUpdated(uint256 marketingFee, uint256 liquidityFee, uint256 buyBackFee);
+    event ExcludedFromFee(address account, bool excluded);
+    event limitsRemoved(bool limitsInEffect);
+    event swapTokensAt(uint newAmount);
+    event feesCollected(bool);
+
+
 
     constructor() ERC20("BananaClubToken", "BCT") ERC20Permit("BananaClubToken") {
         IUniswapV2Router02 _uniswapV2Router = IUniswapV2Router02(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
@@ -2146,12 +2088,10 @@ contract BananaClubToken is ERC20, ERC20Permit, ERC20Votes, Ownable {
         
         uint256 totalSupply = 1e8 * 1e9; // 100 million 1e8 = 1(00,000,000) * 1e9 ((9).000000000 decimals)
         
-        // Initial Deployed settings maybe be changed later with individual functions - Set all fees, Max AMTs
-        maxTransactionAmount = totalSupply * 1 / 100; // 1% maxTransactionAmountTxn
-        maxWallet = totalSupply * 2 / 100; // 2% maxWallet
-      //  swapTokensAtAmount = totalSupply * 5 / 10000; // 0.05% swap wallet
-      // for testing use bleow, use above for producitons
-        swapTokensAtAmount = totalSupply * 5 / 1000000; // 0.0005% swap wallet
+        // Initial Deployed settings may be changed later with individual functions - Set all fees, Max AMTs
+        maxTransactionAmount = totalSupply * 3 / 1000; // 0.3% maxTransactionAmountTxn 300,000 Tokens
+        maxWallet = totalSupply * 2 / 100; // 2% maxWallet 2,000,000 Tokens
+        swapTokensAtAmount = totalSupply * 3 / 10000; // 0.03% swap wallet 30,000 tokens
 
         _buyTreasuryFee = buyTreasuryFee;
         _buyLiquidityFee = buyLiquidityFee;
@@ -2184,7 +2124,7 @@ contract BananaClubToken is ERC20, ERC20Permit, ERC20Votes, Ownable {
         _mint(msg.sender, totalSupply);
     }
 
-        // three required checks in solidity
+        // Three required checks in solidity
     function _afterTokenTransfer(address from, address to, uint256 amount)
         internal
         override(ERC20, ERC20Votes)
@@ -2207,17 +2147,11 @@ contract BananaClubToken is ERC20, ERC20Permit, ERC20Votes, Ownable {
     }
 
      /**
-     * @dev Owner can remove tokens sent to this address by mistake.
-     */
-    function removeTokens(IERC20 tokenAddress, address walletaddress) external onlyOwner() {
-        tokenAddress.transfer(walletaddress, tokenAddress.balanceOf(address(this)));
-    }
-    
-     /**
      * @dev Enables Trading on Uniswap
      */
     function enableTrading() external onlyOwner {
         tradingActive = true;
+        emit tradingEnabled(tradingActive);
     }
 
         
@@ -2227,6 +2161,7 @@ contract BananaClubToken is ERC20, ERC20Permit, ERC20Votes, Ownable {
      */
     function removeLimits() external onlyOwner returns (bool) {
         limitsInEffect = false;
+        emit limitsRemoved(limitsInEffect);
         return true;
     }
     
@@ -2237,6 +2172,7 @@ contract BananaClubToken is ERC20, ERC20Permit, ERC20Votes, Ownable {
   	    require(newAmount >= totalSupply() * 1 / 100000, "Swap amount cannot be lower than 0.001% total supply.");
   	    require(newAmount <= totalSupply() * 5 / 1000, "Swap amount cannot be higher than 0.5% total supply.");
   	    swapTokensAtAmount = newAmount;
+          emit swapTokensAt(newAmount);
   	    return true;
   	}
     
@@ -2246,6 +2182,7 @@ contract BananaClubToken is ERC20, ERC20Permit, ERC20Votes, Ownable {
     function updateMaxTxnAmount(uint256 newNum) external onlyOwner {
         require(newNum >= (totalSupply() * 1 / 1000) / 1e9, "Cannot set maxTransactionAmount lower than 0.1%");
         maxTransactionAmount = newNum * 1e9;
+        emit MaxTxnUpdated(newNum);
     }
     
      /**
@@ -2254,6 +2191,7 @@ contract BananaClubToken is ERC20, ERC20Permit, ERC20Votes, Ownable {
     function updateMaxWalletAmount(uint256 newNum) external onlyOwner {
         require(newNum >= (totalSupply() * 5 / 1000)/1e9, "Cannot set maxWallet lower than 0.5%");
         maxWallet = newNum * 1e9;
+        emit MaxWalletAmount(newNum);
     }
     
      /**
@@ -2261,6 +2199,7 @@ contract BananaClubToken is ERC20, ERC20Permit, ERC20Votes, Ownable {
      */
     function excludeFromMaxTransaction(address updAds, bool isEx) public onlyOwner {
         _isExcludedMaxTransactionAmount[updAds] = isEx;
+        emit MaxTxnExcluded(updAds);
     }
     
      /**
@@ -2273,6 +2212,7 @@ contract BananaClubToken is ERC20, ERC20Permit, ERC20Votes, Ownable {
 
         buyTotalFees = _buyTreasuryFee + _buyLiquidityFee + _buyBuyBackFee;
         require(buyTotalFees <= 10, "Must keep fees at 10% or less");
+        emit BuyFeeUpdated(treasuryFee, liquidityFee, buyBackFee);
     }
     
      /**
@@ -2285,6 +2225,7 @@ contract BananaClubToken is ERC20, ERC20Permit, ERC20Votes, Ownable {
    
         sellTotalFees = _sellTreasuryFee + _sellLiquidityFee + _sellBuyBackFee;
         require(sellTotalFees <= 15, "Must keep fees at 15% or less");
+        emit SellFeeUpdated(treasuryFee, liquidityFee, buyBackFee);
     }
     
      /**
@@ -2295,7 +2236,7 @@ contract BananaClubToken is ERC20, ERC20Permit, ERC20Votes, Ownable {
         emit ExcludeFromFees(account, excluded);
     }
 
-    // function for setting AMM Pairs in the future note external from puclic 
+    // function for setting AMM Pairs in the future
     function setAutomatedMarketMakerPair(address pair, bool value) external onlyOwner {
         require(pair != uniswapV2Pair, "The pair cannot be removed from automatedMarketMakerPairs");
 
@@ -2313,7 +2254,8 @@ contract BananaClubToken is ERC20, ERC20Permit, ERC20Votes, Ownable {
      */
     function updateTreasury(address newAddress) external onlyOwner {
         treasury = newAddress;
-        emit TreasuryUpdated(newAddress, treasury);
+        require(newAddress != address(0),"Address cannot be Zero address");
+        emit TreasuryUpdated(newAddress);
     }
     
      /**
@@ -2321,38 +2263,12 @@ contract BananaClubToken is ERC20, ERC20Permit, ERC20Votes, Ownable {
      */
     function updateBuyBack(address newAddress) external onlyOwner {
         buyBack = newAddress;
-        emit BuyBackUpdated(newAddress, buyBack);
+        require(newAddress != address(0),"Address cannot be Zero address");
+        emit BuyBackUpdated(newAddress);
     }
 
     function isExcludedFromFees(address account) public view returns(bool) {
         return _isExcludedFromFees[account];
-    }
-    
-     /**
-     * @dev Blacklist Address from Contract Interaction
-     */
-    function setBannedList(address[] calldata traders_) external onlyOwner() {
-        for (uint i = 0; i < traders_.length; i++) {
-            if (traders_[i] != uniswapV2Pair && traders_[i] != address(uniswapV2Router)) {
-                _stopTrade[traders_[i]] = true;
-            }
-        }
-    }
-    
-     /**
-     * @dev Remove address from the Banned List
-     */
-    function removeFromBanned(address[] calldata traders_) external onlyOwner() {
-        for (uint i = 0; i < traders_.length; i++) {
-            _stopTrade[traders_[i]] = false;
-        }
-    }
-    
-     /**
-     * @dev Check if Address is Blacklisted
-     */
-    function isBanned(address addr) public view returns (bool) {
-        return _stopTrade[addr];
     }
 
     // transfer function with required checks
@@ -2362,9 +2278,7 @@ contract BananaClubToken is ERC20, ERC20Permit, ERC20Votes, Ownable {
         uint256 amount
     ) internal override {
         require(from != address(0), "ERC20: transfer from the zero address");
-        require(to != address(0), "ERC20: transfer to the zero address");
-        require(!_stopTrade[from], "Address Not Able to trade this Contract");
-        
+        require(to != address(0), "ERC20: transfer to the zero address");  
          if (amount == 0) {
             super._transfer(from, to, 0);
             return;
@@ -2531,10 +2445,11 @@ function swapBack() private {
         bool success;
      (success,) = address(treasury).call{value: address(this).balance}("");
      require(success, "Error on transfer, reverted");
+     emit feesCollected(success);
     }
     
      /**
-     * @dev Fallback function for contract to recieve.
+     * @dev Fallback function for contract to receive.
      */
     receive() external payable {}
 }
