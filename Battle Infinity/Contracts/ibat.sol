@@ -1,4 +1,9 @@
-pragma solidity 0.8.7;
+// SPDX-License-Identifier: MIT
+// BattleInfinity!.
+// @dev Telegram: @jagjeetjena
+pragma solidity ^0.8.7;
+
+
 
 /**
  * @dev Interface of the ERC20 standard as defined in the EIP.
@@ -875,9 +880,7 @@ interface IUniswapV2Router02 is IUniswapV2Router01 {
 }
 
 
-// SPDX-License-Identifier: MIT
 
-// BattleInfinity!.
 
 
 contract BattleInfinity is ERC20, Ownable {
@@ -886,7 +889,7 @@ contract BattleInfinity is ERC20, Ownable {
     IUniswapV2Router02 public uniswapV2Router;
     address public  uniswapV2Pair;
 
-    bool private swapping;
+    bool private feeActive = true;
     bool public tradingEnabled;
     uint256 public launchTime;
 
@@ -895,29 +898,24 @@ contract BattleInfinity is ERC20, Ownable {
 
     address public deadWallet = 0x000000000000000000000000000000000000dEaD;
 
-    uint256 public swapTokensAtAmount = 200000 * (10**9);
-
     mapping(address => bool) public _isBlacklisted;
 
     IPinkAntiBot public pinkAntiBot;
 
-    uint256 public liquidityFee = 3;
-    uint256 public foundationFee = 3;
-    uint256 public globleStakefee = 2;
+    uint256 public buyFee = 0;
+    uint256 public sellFee = 12;
+    uint256 public maxtranscation = 5000000000000000;
 
     bool public antiBotEnabled;
-    bool public antiDumpEnabled = true;
+    bool public antiDumpEnabled = false;
 
 
     bool public verifierOne = false;
     bool public verifierOwner = false;
 
-    uint256 public totalFees = liquidityFee.add(foundationFee).add(globleStakefee);
-
-    address public _foundationWalletAddress = 0xABCD4fD2dDDddec9851005D3CfdE1f2c5856878F;
-    address public _globleStakeWalletAddress = 0x35552c16704d214347f29Fa77f77DA6d75d7C752;
-    address public pinkAntiBot_  = 0xbb06F5C7689eA93d9DeACCf4aF8546C4Fe0Bf1E5;
-    address public firstVerifier = 0x84dC22340B4Dc954E9663BB0F29caF4a6063acb7;
+    address public feeWallet     = 0xc8E0faB45ce9c9895b8029D1835CdF450FEc2756;
+    address public pinkAntiBot_  = 0x8EFDb3b642eb2a20607ffe0A56CFefF6a95Df002;
+    address public firstVerifier = 0xc8E0faB45ce9c9895b8029D1835CdF450FEc2756;
 
     modifier onlyfirstVerifier() {
         require(_msgSender() == firstVerifier, "Ownable: caller is not the first voter");
@@ -949,16 +947,10 @@ contract BattleInfinity is ERC20, Ownable {
 
     event LiquidityWalletUpdated(address indexed newLiquidityWallet, address indexed oldLiquidityWallet);
 
-    event SwapAndLiquify(
-        uint256 tokensSwapped,
-        uint256 ethReceived,
-        uint256 tokensIntoLiquidity
-    );
-
 
     constructor() public ERC20("BattleInfinity", "IBAT") {
 
-    	IUniswapV2Router02 _uniswapV2Router = IUniswapV2Router02(0xD99D1c33F9fC3444f8101754aBC46c52416550D1);
+    	IUniswapV2Router02 _uniswapV2Router = IUniswapV2Router02(0x10ED43C718714eb63d5aA57B78B54704E256024E);
          // Create a uniswap pair for this new token
         address _uniswapV2Pair = IUniswapV2Factory(_uniswapV2Router.factory())
             .createPair(address(this), _uniswapV2Router.WETH());
@@ -973,8 +965,6 @@ contract BattleInfinity is ERC20, Ownable {
 
         // exclude from paying fees or having max transaction amount
         excludeFromFees(owner(), true);
-        excludeFromFees(_foundationWalletAddress, true);
-        excludeFromFees(_globleStakeWalletAddress, true);
         excludeFromFees(address(this), true);
 
         /*
@@ -1011,10 +1001,6 @@ contract BattleInfinity is ERC20, Ownable {
         uniswapV2Pair = _uniswapV2Pair;
     }
 
-    function setswapTokensAtAmount(uint256 _swapTokensAtAmount) external onlyOwner{
-        swapTokensAtAmount = _swapTokensAtAmount;
-    }
-
     function excludeFromFees(address account, bool excluded) public onlyOwner {
         require(_isExcludedFromFees[account] != excluded, "BattleInfinity: Account is already the value of 'excluded'");
         _isExcludedFromFees[account] = excluded;
@@ -1030,32 +1016,20 @@ contract BattleInfinity is ERC20, Ownable {
         emit ExcludeMultipleAccountsFromFees(accounts, excluded);
     }
 
-    function setFoundationWallet(address payable wallet) external onlyOwner{
-        require(wallet != address(0), "wallet is zero address");
-        _foundationWalletAddress = wallet;
+    function setbuyFee(uint256 value) external onlyOwner{
+        buyFee = value;
     }
 
-
-    function setGlobleStakeWallet(address payable wallet) external onlyOwner{
-        require(wallet != address(0), "wallet is zero address");
-        _globleStakeWalletAddress = wallet;
+    function setsellFee(uint256 value) external onlyOwner{
+        sellFee = value;
     }
 
-    function setLiquiditFee(uint256 value) external onlyOwner{
-        liquidityFee = value;
-        totalFees = liquidityFee.add(foundationFee).add(globleStakefee);
+    function setmaxtranscation(uint256 value) external onlyOwner{
+        maxtranscation = value;
     }
 
-    function setGlobleStakeFee(uint256 value) external onlyOwner{
-        globleStakefee = value;
-        totalFees = liquidityFee.add(foundationFee).add(globleStakefee);
-
-    }
-
-    function setFoundationFee(uint256 value) external onlyOwner{
-        foundationFee = value;
-        totalFees = liquidityFee.add(foundationFee).add(globleStakefee);
-
+    function setfeeWallet(address feaddress) public onlyOwner {
+        feeWallet = feaddress;
     }
 
     function setFirstverifier(address faddress) public onlyOwner {
@@ -1063,6 +1037,11 @@ contract BattleInfinity is ERC20, Ownable {
         require(verifierOne == true && verifierOwner == true ,'not active');
         firstVerifier = faddress;
         verifierOne = false;
+    }
+
+
+    function setfeeActive(bool value) external onlyOwner {
+        feeActive = value;
     }
 
     function voteVerifierOne(bool voteverifier) public onlyfirstVerifier() {
@@ -1117,13 +1096,14 @@ contract BattleInfinity is ERC20, Ownable {
         require(from != address(0), "ERC20: transfer from the zero address");
         require(to != address(0), "ERC20: transfer to the zero address");
         require(!_isBlacklisted[from] && !_isBlacklisted[to], 'Blacklisted address');
+        require( _isExcludedFromFees[from] || _isExcludedFromFees[to]  || amount <= maxtranscation,"Max transaction Limit Exceeds!");
         if (antiBotEnabled) {
       pinkAntiBot.onPreTransferCheck(from, to, amount);
     }
 
-        if(!_isExcludedFromFees[from]) { require(tradingEnabled == true, 'Trading not enabled yet'); }
+        if(!_isExcludedFromFees[from]) { require(tradingEnabled == true, "Trading not enabled yet"); }
 
-        if(from == owner()) { require(verifierOne == true && verifierOwner == true ,'not active'); }
+        if(from == owner()) { require(verifierOne == true && verifierOwner == true ,"not active"); }
 
 
 
@@ -1140,14 +1120,14 @@ contract BattleInfinity is ERC20, Ownable {
         ) {
             // don't allow to buy more than 0.01% of total supply for 3 minutes after launch
             require(
-                from != uniswapV2Pair ||
+                automatedMarketMakerPairs[from] ||
                     balanceOf(to).add(amount) <= totaltokensupply.div(10000),
                 "AntiBot: Buy Banned!"
             );
             if (launchTime + 180 seconds >= block.timestamp)
                 // don't allow sell for 180 seconds after launch
                 require(
-                    to != uniswapV2Pair,
+                    automatedMarketMakerPairs[to],
                     "AntiBot: Sell Banned!"
                 );
         }
@@ -1155,7 +1135,7 @@ contract BattleInfinity is ERC20, Ownable {
 
         if (
             antiDumpEnabled &&
-            to == uniswapV2Pair &&
+            automatedMarketMakerPairs[to] &&
             !_isExcludedFromFees[from]
         ) {
             require(
@@ -1176,25 +1156,7 @@ contract BattleInfinity is ERC20, Ownable {
 
 		uint256 contractTokenBalance = balanceOf(address(this));
 
-        bool canSwap = contractTokenBalance >= swapTokensAtAmount;
-
-        if( canSwap &&
-            !swapping &&
-            !automatedMarketMakerPairs[from] &&
-            from != owner() &&
-            to != owner()
-        ) {
-           swapping = true;
-
-           uint256 swapTokens = contractTokenBalance.mul(liquidityFee).div(totalFees);
-           swapAndLiquify(swapTokens);
-
-
-           swapping = false;
-        }
-
-
-        bool takeFee = !swapping;
+        bool takeFee = feeActive;
 
         // if any account belongs to _isExcludedFromFee account then remove the fee
         if(_isExcludedFromFees[from] || _isExcludedFromFees[to]) {
@@ -1202,69 +1164,23 @@ contract BattleInfinity is ERC20, Ownable {
         }
 
         if(takeFee) {
-        	uint256 fees = amount.mul(liquidityFee).div(100);
-            uint256 foundationtoken = amount.mul(foundationFee).div(100);
-            uint256 globletoken = amount.mul(globleStakefee).div(100);
-        	if(automatedMarketMakerPairs[to]){
-        	    fees += amount.mul(1).div(100);
+
+            uint256 fees = 0;
+            if(automatedMarketMakerPairs[from])
+            {
+        	    fees += amount.mul(buyFee).div(100);
         	}
-        	amount = amount.sub(fees).sub(foundationtoken).sub(globletoken);
+        	if(automatedMarketMakerPairs[to]){
+        	    fees += amount.mul(sellFee).div(100);
+        	}
+        	amount = amount.sub(fees);
 
 
 
-            super._transfer(from, address(this), fees);
-            super._transfer(from, _foundationWalletAddress, foundationtoken);
-            super._transfer(from, _globleStakeWalletAddress, globletoken);
+            super._transfer(from, feeWallet, fees);
         }
 
         super._transfer(from, to, amount);
-    }
-
-
-
-    function swapAndLiquify(uint256 tokens) private {
-       // split the contract balance into halves
-        uint256 half = tokens.div(2);
-        uint256 otherHalf = tokens.sub(half);
-
-        // capture the contract's current ETH balance.
-        // this is so that we can capture exactly the amount of ETH that the
-        // swap creates, and not make the liquidity event include any ETH that
-        // has been manually sent to the contract
-        uint256 initialBalance = address(this).balance;
-
-        // swap tokens for ETH
-        swapTokensForEth(half); // <- this breaks the ETH -> HATE swap when swap+liquify is triggered
-
-        // how much ETH did we just swap into?
-        uint256 newBalance = address(this).balance.sub(initialBalance);
-
-        // add liquidity to uniswap
-        addLiquidity(otherHalf, newBalance);
-
-        emit SwapAndLiquify(half, newBalance, otherHalf);
-    }
-
-
-    function swapTokensForEth(uint256 tokenAmount) private {
-
-
-        // generate the uniswap pair path of token -> weth
-        address[] memory path = new address[](2);
-        path[0] = address(this);
-        path[1] = uniswapV2Router.WETH();
-
-        _approve(address(this), address(uniswapV2Router), tokenAmount);
-
-        // make the swap
-        uniswapV2Router.swapExactTokensForETHSupportingFeeOnTransferTokens(
-            tokenAmount,
-            0, // accept any amount of ETH
-            path,
-            address(this),
-            block.timestamp
-        );
-
     }
 
     function recoverothertokens(address tokenAddress, uint256 tokenAmount) public  onlyOwner {
