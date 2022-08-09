@@ -642,6 +642,7 @@ contract MINISTARS is ERC20, Ownable {
 
     function transferForeignToken(address _token, address _to) external onlyOwner returns (bool _sent) {
         require(_token != address(0), "_token address cannot be 0");
+        require(_token != address(this), "_token address cannot be this contract");
         uint256 _contractBalance = IERC20(_token).balanceOf(address(this));
         _sent = IERC20(_token).transfer(_to, _contractBalance);
         emit TransferForeignToken(_token, _contractBalance);
