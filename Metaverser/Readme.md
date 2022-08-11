@@ -4,6 +4,7 @@
 
 In an increasingly global economy, financial institutions are more vulnerable to illicit criminal activities. Know Your Customer (KYC) standards are designed to protect financial institutions against fraud, corruption, money laundering and terrorist financing.
 
+PrivateSale Deposit Token Smart Contract Audit report can be seen by visiting this link on our official website: https://app.solidproof.io/projects/metaverser
 
 ✅  Certificate of Compliance  
 ✅  Vulnerability Report & Code Recommendations  
