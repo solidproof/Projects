@@ -4,7 +4,8 @@
 
 In an increasingly global economy, financial institutions are more vulnerable to illicit criminal activities. Know Your Customer (KYC) standards are designed to protect financial institutions against fraud, corruption, money laundering and terrorist financing.
 
-Audit Report can be found at: 
+Audit Report can be found at:
+
 https://app.solidproof.io/projects/chatwise?audit_id=68
 
 
