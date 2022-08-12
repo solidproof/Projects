@@ -6,6 +6,8 @@ In an increasingly global economy, financial institutions are more vulnerable to
 
 Audit Report can be found at: 
 https://app.solidproof.io/projects/chatwise?audit_id=68
+
+
 https://app.solidproof.io/projects/chatwise?audit_id=67
 
 ✅  Certificate of Compliance  
