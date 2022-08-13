@@ -1,0 +1,15 @@
+[programs.localnet]
+claiming_factory = "6cJU4mUJe1fKXzvvbZjz72M3d5aQXMmRV2jeQerkFw5b"
+
+[programs.devnet]
+claiming_factory = "6cJU4mUJe1fKXzvvbZjz72M3d5aQXMmRV2jeQerkFw5b"
+
+[registry]
+url = "https://anchor.projectserum.com"
+
+[provider]
+cluster = "localnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test = "ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"

@@ -1,0 +1,23 @@
+{
+  "root": true,
+  "env": {
+    "node": true
+  },
+  "extends": [],
+  "parserOptions": {
+    "ecmaVersion": 2020
+  },
+  "rules": {
+    "no-debugger": ["warn"],
+    "max-len": "off",
+    "no-shadow": "off",
+    "@typescript-eslint/no-non-null-assertion": "off",
+    "prefer-const": "warn",
+    "prefer-destructuring": "warn",
+    "no-param-reassign": "warn",
+    "comma-dangle": "off",
+    "no-restricted-syntax": "warn",
+    "class-methods-use-this": "off",
+    "linebreak-style": "off"
+  }
+}

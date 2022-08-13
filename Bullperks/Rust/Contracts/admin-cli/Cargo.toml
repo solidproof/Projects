@@ -1,0 +1,21 @@
+[package]
+edition = "2018"
+name = "admin-cli"
+version = "0.1.0"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anchor-client = "0.24"
+solana-sdk = "1.8"
+spl-token = "3.2"
+
+anyhow = "1.0"
+csv = "1.1"
+rand = "0.7"
+serde = "1"
+serde_json = "1"
+shellexpand = "2.1"
+structopt = "0.3"
+
+claiming-factory = {path = "../programs/claiming-factory", features = ["no-entrypoint"]}

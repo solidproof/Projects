@@ -1,0 +1,20 @@
+[package]
+description = "Created with Anchor"
+edition = "2018"
+name = "claiming-factory"
+version = "0.1.0"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "claiming_factory"
+
+[features]
+cpi = ["no-entrypoint"]
+default = []
+no-entrypoint = []
+no-idl = []
+
+[dependencies]
+anchor-lang = "0.24"
+anchor-spl = "0.24"
+rust_decimal = "1.24"
