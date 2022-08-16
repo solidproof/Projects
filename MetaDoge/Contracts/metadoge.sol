@@ -7,6 +7,14 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
 
+interface IAntisnipe {
+    function assureCanTransfer(
+        address sender,
+        address from,
+        address to,
+        uint256 amount
+    ) external;
+}
 
 contract MetaDoge is Context, IERC20, IERC20Metadata, Ownable {
     using SafeMath for uint256;
@@ -31,11 +39,11 @@ contract MetaDoge is Context, IERC20, IERC20Metadata, Ownable {
 
     constructor() {
         _name = "MetaDoge";
-        _symbol = "MTD";
-        _mint(0x34A8C43b0d43d2Bd1DfbE551442e43E2a834a02a, 1000000000 * 10 ** 18);
+        _symbol = "MTDU";
+        _mint(0x34A8C43b0d43d2Bd1DfbE551442e43E2a834a02a, 1000000000 * 10**18);
         marketingWallet = 0x5673337B132B0E0e7db1789d213A9b6549756c12;
         masterWallet = 0x9c6e9dEa6edfa11Da9cA30fA7df5af9A1d5a52e0;
-        masterFee = 2;
+        masterFee = 0;
         marketingFee = 1;
         excludeAddress(0x34A8C43b0d43d2Bd1DfbE551442e43E2a834a02a);
     }
@@ -52,16 +60,32 @@ contract MetaDoge is Context, IERC20, IERC20Metadata, Ownable {
         return 18;
     }
 
-    function allowance(address owner, address spender) public view virtual override returns (uint256) {
+    function allowance(address owner, address spender)
+        public
+        view
+        virtual
+        override
+        returns (uint256)
+    {
         return _allowances[owner][spender];
     }
 
-    function approve(address spender, uint256 amount) public virtual override returns (bool) {
+    function approve(address spender, uint256 amount)
+        public
+        virtual
+        override
+        returns (bool)
+    {
         _approve(_msgSender(), spender, amount);
         return true;
     }
 
-    function transfer(address recipient, uint256 amount) public virtual override returns (bool) {
+    function transfer(address recipient, uint256 amount)
+        public
+        virtual
+        override
+        returns (bool)
+    {
         _transfer(_msgSender(), recipient, amount);
         return true;
     }
@@ -73,7 +97,10 @@ contract MetaDoge is Context, IERC20, IERC20Metadata, Ownable {
     ) public virtual override returns (bool) {
         uint256 currentAllowance = _allowances[sender][_msgSender()];
         if (currentAllowance != type(uint256).max) {
-            require(currentAllowance >= amount, "ERC20: transfer amount exceeds allowance");
+            require(
+                currentAllowance >= amount,
+                "ERC20: transfer amount exceeds allowance"
+            );
             unchecked {
                 _approve(sender, _msgSender(), currentAllowance - amount);
             }
@@ -84,14 +111,29 @@ contract MetaDoge is Context, IERC20, IERC20Metadata, Ownable {
         return true;
     }
 
-    function increaseAllowance(address spender, uint256 addedValue) public virtual returns (bool) {
-        _approve(_msgSender(), spender, _allowances[_msgSender()][spender] + addedValue);
+    function increaseAllowance(address spender, uint256 addedValue)
+        public
+        virtual
+        returns (bool)
+    {
+        _approve(
+            _msgSender(),
+            spender,
+            _allowances[_msgSender()][spender] + addedValue
+        );
         return true;
     }
 
-    function decreaseAllowance(address spender, uint256 subtractedValue) public virtual returns (bool) {
+    function decreaseAllowance(address spender, uint256 subtractedValue)
+        public
+        virtual
+        returns (bool)
+    {
         uint256 currentAllowance = _allowances[_msgSender()][spender];
-        require(currentAllowance >= subtractedValue, "ERC20: decreased allowance below zero");
+        require(
+            currentAllowance >= subtractedValue,
+            "ERC20: decreased allowance below zero"
+        );
         unchecked {
             _approve(_msgSender(), spender, currentAllowance - subtractedValue);
         }
@@ -114,7 +156,7 @@ contract MetaDoge is Context, IERC20, IERC20Metadata, Ownable {
     /**
      * @dev See {IERC20-balanceOf}.
      */
-    function balanceOf(address account) public virtual override view returns (uint256) {
+    function balanceOf(address account) public view virtual override returns (uint256) {
         return _balances[account];
     }
 
@@ -141,14 +183,19 @@ contract MetaDoge is Context, IERC20, IERC20Metadata, Ownable {
     ) internal virtual {
         require(sender != address(0), "ERC20: transfer from the zero address");
         require(recipient != address(0), "ERC20: transfer to the zero address");
+        _beforeTokenTransfer(sender, recipient, amount);
 
         uint256 senderBalance = _balances[sender];
-        require(senderBalance >= amount, "ERC20: transfer amount exceeds balance");
+        require(
+            senderBalance >= amount,
+            "ERC20: transfer amount exceeds balance"
+        );
 
         if (isExcludedFromFee[sender] || isExcludedFromFee[recipient]) {
             _transferWithoutFee(sender, recipient, amount);
         } else {
-            _transferStandard(sender, recipient, amount);
+            if (masterFee == 0 || marketingFee == 0) _transferWithoutFee(sender, recipient, amount);
+            else _transferStandard(sender, recipient, amount);
         }
     }
 
@@ -200,7 +247,9 @@ contract MetaDoge is Context, IERC20, IERC20Metadata, Ownable {
         _balances[masterWallet] = _balances[masterWallet].add(feeToMaster);
         emit Transfer(sender, masterWallet, feeToMaster);
 
-        _balances[marketingWallet] = _balances[marketingWallet].add(feeToMarketing);
+        _balances[marketingWallet] = _balances[marketingWallet].add(
+            feeToMarketing
+        );
         emit Transfer(sender, masterWallet, feeToMarketing);
     }
 
@@ -216,5 +265,27 @@ contract MetaDoge is Context, IERC20, IERC20Metadata, Ownable {
 
     function totalSupply() public view virtual override returns (uint256) {
         return _totalSupply;
+    }
+
+    IAntisnipe public antisnipe = IAntisnipe(address(0));
+    bool public antisnipeDisable;
+
+    function _beforeTokenTransfer(
+        address from,
+        address to,
+        uint256 amount
+    ) internal {
+        if (from == address(0) || to == address(0)) return;
+        if (!antisnipeDisable && address(antisnipe) != address(0))
+            antisnipe.assureCanTransfer(msg.sender, from, to, amount);
+    }
+
+    function setAntisnipeDisable() external onlyOwner {
+        require(!antisnipeDisable);
+        antisnipeDisable = true;
+    }
+
+    function setAntisnipeAddress(address addr) external onlyOwner {
+        antisnipe = IAntisnipe(addr);
     }
 }
