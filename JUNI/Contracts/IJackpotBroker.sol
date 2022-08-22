@@ -42,6 +42,7 @@ struct RankedJackpot {
     uint256 createdAt;
     uint256 lastUserAmount;
     address lastUser;
+    uint256 totalUsers;
     uint256 totalTickets;
 }
 

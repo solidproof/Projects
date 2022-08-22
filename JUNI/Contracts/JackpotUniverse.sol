@@ -98,6 +98,8 @@ contract JackpotUniverse is IERC20, JackpotToken, Treasury {
 
     event JackpotLimited(bool limited);
 
+    event TradingStatusChanged(bool status);
+
     modifier lockTheSwap() {
         _inSwapAndLiquify = true;
         _;
@@ -166,13 +168,13 @@ contract JackpotUniverse is IERC20, JackpotToken, Treasury {
         return true;
     }
 
-    function allowance(address owner, address spender)
+    function allowance(address wallet, address spender)
         public
         view
         override
         returns (uint256)
     {
-        return _allowances[owner][spender];
+        return _allowances[wallet][spender];
     }
 
     function approve(address spender, uint256 amount)
@@ -185,15 +187,15 @@ contract JackpotUniverse is IERC20, JackpotToken, Treasury {
     }
 
     function approve(
-        address owner,
+        address wallet,
         address spender,
         uint256 amount
     ) private {
-        require(owner != address(0), "BEP20: approve from the zero address");
+        require(wallet != address(0), "BEP20: approve from the zero address");
         require(spender != address(0), "BEP20: approve to the zero address");
 
-        _allowances[owner][spender] = amount;
-        emit Approval(owner, spender, amount);
+        _allowances[wallet][spender] = amount;
+        emit Approval(wallet, spender, amount);
     }
 
     function transferFrom(
@@ -414,6 +416,7 @@ contract JackpotUniverse is IERC20, JackpotToken, Treasury {
 
     function setTradingStatus(bool status) external onlyOwner {
         tradingOpen = status;
+        emit TradingStatusChanged(status);
     }
 
     function jackpotBuyerShareAmount()
