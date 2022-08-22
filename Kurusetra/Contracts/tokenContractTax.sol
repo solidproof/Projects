@@ -1,6 +1,6 @@
 
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity 0.8.7;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -15,6 +15,11 @@ contract TokenWithTax is ERC20, Ownable {
 
     mapping(address => bool) private isExcludedFromFee;
     mapping(address => bool) private isExcludedFromMaxTransfer;
+
+    event taxSelected(uint256 tax);
+    event maxTransferSelected(uint256 amount);
+    event walletsWithoutFeeIncluded(address wallet);
+    event walletsExcludedMaxTransfer(address wallet);
 
     constructor() ERC20("KRSTC", "KURUSETRA") {
         _mint(msg.sender, 10000000 * 10**decimals());
@@ -37,12 +42,14 @@ contract TokenWithTax is ERC20, Ownable {
     }
 
     function setWalletsWithoutFee(address wallet) external onlyOwner {
-        require(isExcludedFromFee[wallet] == false, "This wallet is excluded");
+        require(wallet != address(0), "Wallet can't be zero address");
+        require(!isExcludedFromFee[wallet], "This wallet is excluded");
         isExcludedFromFee[wallet] = true;
     }
 
     function setWalletsExcludedFromMaxTransfer(address wallet) external onlyOwner {
-        require(isExcludedFromMaxTransfer[wallet] == false, "This wallet is excluded");
+        require(wallet != address(0), "Wallet can't be zero address");
+        require(!isExcludedFromMaxTransfer[wallet], "This wallet is excluded");
         isExcludedFromMaxTransfer[wallet] = true;
     }
 
