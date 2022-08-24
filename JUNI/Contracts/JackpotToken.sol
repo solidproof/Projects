@@ -91,6 +91,10 @@ abstract contract JackpotToken is Ownable {
 
     event JackpotStatusChanged(bool status);
 
+    event LiquidityRouterChanged(address router);
+
+    event LiquidityPairChanged(address pair);
+
     constructor() Ownable(msg.sender) {
         uniswapV2Router = IUniswapV2Router02(
             0x10ED43C718714eb63d5aA57B78B54704E256024E
@@ -103,6 +107,8 @@ abstract contract JackpotToken is Ownable {
 
     function setUniswapRouter(address otherRouterAddress) external onlyOwner {
         uniswapV2Router = IUniswapV2Router02(otherRouterAddress);
+
+        emit LiquidityRouterChanged(otherRouterAddress);
     }
 
     function setUniswapPair(address otherPairAddress) external onlyOwner {
@@ -111,6 +117,8 @@ abstract contract JackpotToken is Ownable {
             "You must supply a non-zero address"
         );
         uniswapV2Pair = otherPairAddress;
+
+        emit LiquidityPairChanged(otherPairAddress);
     }
 
     function awardJackpot() internal virtual;

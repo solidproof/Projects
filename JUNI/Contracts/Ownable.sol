@@ -64,6 +64,10 @@ contract Ownable is Context {
      * @dev Initializes the contract setting the deployer as the initial owner.
      */
     constructor(address initialOwner) {
+        require(
+            initialOwner != address(0),
+            "Initial owner can't be the zero address"
+        );
         _owner = initialOwner;
 
         emit OwnershipTransferred(address(0), initialOwner);
@@ -177,12 +181,10 @@ contract Ownable is Context {
         virtual
         onlyOwner
     {
-        require(
-            _lockedLiquidity == address(0),
-            "Locked liquidity address cannot be changed once set"
-        );
-        emit LockedLiquidityAddressChanged(_lockedLiquidity, liquidityAddress);
+        // Zero address is fine, as to lock liquidity
+        // Ideally, we'll be locking these tokens manually up to X months
         _lockedLiquidity = liquidityAddress;
+        emit LockedLiquidityAddressChanged(_lockedLiquidity, liquidityAddress);
     }
 
     /**
