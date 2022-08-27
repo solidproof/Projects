@@ -54,11 +54,12 @@ import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "./Ownable.sol";
 import "./IJackpotGuard.sol";
 import "./IJackpotBroker.sol";
+import "./IJackpotReferral.sol";
 import "./JackpotToken.sol";
-import "./Treasury.sol";
 
-contract JackpotUniverse is IERC20, JackpotToken, Treasury {
+contract JackpotUniverse is IERC20, JackpotToken {
     using Address for address;
+    using EnumerableSet for EnumerableSet.AddressSet;
 
     mapping(address => uint256) private _balances;
     mapping(address => mapping(address => uint256)) private _allowances;
@@ -79,7 +80,8 @@ contract JackpotUniverse is IERC20, JackpotToken, Treasury {
     bool public jackpotLimited = true;
 
     IJackpotBroker private jBroker;
-    IJackpotGuard internal jGuard;
+    IJackpotGuard private jGuard;
+    IJackpotReferral private jReferral;
 
     event SwapAndLiquifyEnabledUpdated(bool enabled);
     event SwapAndLiquify(
@@ -94,6 +96,8 @@ contract JackpotUniverse is IERC20, JackpotToken, Treasury {
 
     event JackpotGuardChanged(address oldGuard, address newGuard);
 
+    event JackpotReferralChanged(address oldBroker, address newBroker);
+
     event JackpotBrokerChanged(address oldBroker, address newBroker);
 
     event JackpotLimited(bool limited);
@@ -106,11 +110,16 @@ contract JackpotUniverse is IERC20, JackpotToken, Treasury {
         _inSwapAndLiquify = false;
     }
 
-    constructor(address jGuardAddr, address jBrokerAddr)
-        Treasury(TOTAL, DECIMALS)
-    {
+    constructor(
+        address jGuardAddr,
+        address jReferralAddr,
+        address jBrokerAddr
+    ) Treasury(TOTAL, DECIMALS) {
         jGuard = IJackpotGuard(jGuardAddr);
         emit JackpotGuardChanged(address(0), jGuardAddr);
+
+        jReferral = IJackpotReferral(jReferralAddr);
+        emit JackpotReferralChanged(address(0), jReferralAddr);
 
         jBroker = IJackpotBroker(jBrokerAddr);
         emit JackpotBrokerChanged(address(0), jBrokerAddr);
@@ -120,9 +129,6 @@ contract JackpotUniverse is IERC20, JackpotToken, Treasury {
         // Exempts from fees, tx limit and max wallet
         exemptFromAll(owner());
         exemptFromAll(address(this));
-
-        // Must exempt swap pair to avoid double dipping on swaps
-        exemptFromSwapAndLiquify(uniswapV2Pair);
 
         emit Transfer(address(0), msg.sender, TOTAL);
     }
@@ -353,7 +359,11 @@ contract JackpotUniverse is IERC20, JackpotToken, Treasury {
         if (
             !_inSwapAndLiquify &&
             jackpotEnabled &&
-            usdEquivalent(getPendingBalance(TaxId.Jackpot)) >= jackpotHardLimit
+            jGuard.usdEquivalent(
+                address(swapRouter),
+                getPendingBalance(TaxId.Jackpot)
+            ) >=
+            jackpotHardLimit
         ) {
             processBigBang();
             resetJackpot();
@@ -619,10 +629,10 @@ contract JackpotUniverse is IERC20, JackpotToken, Treasury {
     function swapTokensForBnb(uint256 tokenAmount) private {
         address[] memory path = new address[](2);
         path[0] = address(this);
-        path[1] = uniswapV2Router.WETH();
+        path[1] = swapRouter.WETH();
 
-        approve(address(this), address(uniswapV2Router), tokenAmount);
-        uniswapV2Router.swapExactTokensForETHSupportingFeeOnTransferTokens(
+        approve(address(this), address(swapRouter), tokenAmount);
+        swapRouter.swapExactTokensForETHSupportingFeeOnTransferTokens(
             tokenAmount,
             0,
             path,
@@ -633,10 +643,10 @@ contract JackpotUniverse is IERC20, JackpotToken, Treasury {
 
     function addLiquidity(uint256 tokenAmount, uint256 bnbAmount) private {
         // Approve token transfer to cover all possible scenarios
-        approve(address(this), address(uniswapV2Router), tokenAmount);
+        approve(address(this), address(swapRouter), tokenAmount);
 
         // Add the liquidity
-        uniswapV2Router.addLiquidityETH{value: bnbAmount}(
+        swapRouter.addLiquidityETH{value: bnbAmount}(
             address(this),
             tokenAmount,
             0, // slippage is unavoidable
@@ -653,29 +663,34 @@ contract JackpotUniverse is IERC20, JackpotToken, Treasury {
     ) private {
         bool takeFee = false;
         bool isBuy = false;
+        bool isSenderPool = liquidityPools.contains(sender);
+        bool isRecipientPool = liquidityPools.contains(recipient);
 
         if (isFeeExempt(sender) || isFeeExempt(recipient)) {
             // takeFee is false, so we good
-        } else if (uniswapV2Pair == recipient && sender != uniswapV2Pair) {
+        } else if (isRecipientPool && !isSenderPool) {
             // This is a sell
             takeFee = true;
-        } else if (uniswapV2Pair == sender && recipient != uniswapV2Pair) {
+        } else if (isSenderPool && !isRecipientPool) {
             // If we're here, it must mean that the sender is the uniswap pair
             // This is a buy
             takeFee = true;
             isBuy = true;
             uint256 qualifier = jGuard.getJackpotQualifier(
-                address(uniswapV2Router),
+                swapRouters[sender],
                 address(this),
                 jackpotMinBuy,
                 amount
             );
             if (qualifier >= 1 && jGuard.isJackpotEligibleOnBuy(recipient)) {
-                jBroker.awardTickets(recipient, qualifier);
+                jReferral.awardTickets(recipient, qualifier);
                 if (
                     jackpotEnabled &&
                     (!jackpotLimited ||
-                        usdEquivalent(getPendingBalance(TaxId.Jackpot)) >=
+                        jGuard.usdEquivalent(
+                            address(swapRouter),
+                            getPendingBalance(TaxId.Jackpot)
+                        ) >=
                         jackpotHardLimit / 2)
                 ) {
                     _lastBuyTimestamp = block.timestamp;
@@ -684,7 +699,7 @@ contract JackpotUniverse is IERC20, JackpotToken, Treasury {
             }
         } else {
             // Wallet to wallet
-            jBroker.refer(sender, recipient, amount);
+            jReferral.refer(sender, recipient, amount);
         }
 
         transferStandard(sender, recipient, amount, takeFee, isBuy);
@@ -713,7 +728,7 @@ contract JackpotUniverse is IERC20, JackpotToken, Treasury {
             takeFee,
             isBuy
         );
-        if (recipient != uniswapV2Pair && recipient != DEAD) {
+        if (!liquidityPools.contains(recipient) && recipient != DEAD) {
             require(
                 isMaxWalletExempt(recipient) ||
                     (balanceOf(recipient) + tTransferAmount) <= maxWalletSize,

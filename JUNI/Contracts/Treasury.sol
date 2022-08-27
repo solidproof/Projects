@@ -375,7 +375,7 @@ abstract contract Treasury is Ownable {
         collectFees(TaxId.Team, teamWallet());
     }
 
-    function getPendingTokens() external view returns (uint256[] memory) {
+    function getPendingTokens() public view returns (uint256[] memory) {
         uint8 min = uint8(type(TaxId).min);
         uint8 max = uint8(type(TaxId).max);
         uint256[] memory tokens = new uint256[](max - min + 1);
@@ -388,12 +388,11 @@ abstract contract Treasury is Ownable {
     }
 
     function getPendingTokensTotal() public view returns (uint256) {
-        uint8 min = uint8(type(TaxId).min);
-        uint8 max = uint8(type(TaxId).max);
-
+        uint256[] memory tokens = getPendingTokens();
         uint256 pendingTokensTotal = 0;
-        for (uint8 i = min; i <= max; i++) {
-            pendingTokensTotal += taxes[TaxId(i)].pendingTokens;
+
+        for (uint8 i = 0; i < tokens.length; i++) {
+            pendingTokensTotal += tokens[i];
         }
 
         return pendingTokensTotal;
@@ -402,6 +401,7 @@ abstract contract Treasury is Ownable {
     function getPendingBalances() public view returns (uint256[] memory) {
         uint8 min = uint8(type(TaxId).min);
         uint8 max = uint8(type(TaxId).max);
+
         uint256[] memory balances = new uint256[](max - min + 1);
 
         for (uint8 i = min; i <= max; i++) {
@@ -411,13 +411,11 @@ abstract contract Treasury is Ownable {
         return balances;
     }
 
-    function getPendingBalancesTotal() public view returns (uint256) {
-        uint8 min = uint8(type(TaxId).min);
-        uint8 max = uint8(type(TaxId).max);
-
+    function getPendingBalancesTotal() external view returns (uint256) {
+        uint256[] memory balances = getPendingBalances();
         uint256 pendingBalancesTotal = 0;
-        for (uint8 i = min; i <= max; i++) {
-            pendingBalancesTotal += taxes[TaxId(i)].pendingBalance;
+        for (uint8 i = 0; i < balances.length; i++) {
+            pendingBalancesTotal += balances[i];
         }
 
         return pendingBalancesTotal;
