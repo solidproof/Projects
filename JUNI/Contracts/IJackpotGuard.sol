@@ -10,6 +10,11 @@ interface IJackpotGuard {
         uint256 tokenAmount
     ) external view returns (uint256);
 
+    function usdEquivalent(address router, uint256 bnbAmount)
+        external
+        view
+        returns (uint256);
+
     function isJackpotEligibleOnAward(address user)
         external
         view

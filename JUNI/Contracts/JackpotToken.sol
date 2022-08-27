@@ -3,19 +3,23 @@
 pragma solidity 0.8.16;
 
 import "@openzeppelin/contracts/utils/Address.sol";
+import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
+import "./Treasury.sol";
 import "./IJackpotGuard.sol";
 import "./Ownable.sol";
 
-abstract contract JackpotToken is Ownable {
+abstract contract JackpotToken is Ownable, Treasury {
     using Address for address;
+    using EnumerableSet for EnumerableSet.AddressSet;
 
     // 100%
     uint256 internal constant MAX_PCT = 10000;
     uint256 internal constant BNB_DECIMALS = 18;
     uint256 internal constant USDT_DECIMALS = 18;
-    address internal constant USDT = 0x55d398326f99059fF775485246999027B3197955;
+    address internal constant DEFAULT_ROUTER =
+        0x10ED43C718714eb63d5aA57B78B54704E256024E;
     address internal constant DEAD = 0x000000000000000000000000000000000000dEaD;
 
     // PCS takes 0.25% fee on all txs
@@ -59,8 +63,10 @@ abstract contract JackpotToken is Ownable {
 
     bool public jackpotEnabled = true;
 
-    address public uniswapV2Pair;
-    IUniswapV2Router02 public uniswapV2Router;
+    // This will represent the default swap router
+    IUniswapV2Router02 internal swapRouter;
+    EnumerableSet.AddressSet internal liquidityPools;
+    mapping(address => address) internal swapRouters;
 
     event JackpotAwarded(
         address winner,
@@ -93,32 +99,49 @@ abstract contract JackpotToken is Ownable {
 
     event LiquidityRouterChanged(address router);
 
-    event LiquidityPairChanged(address pair);
+    event LiquidityPoolAdded(address pool);
+
+    event LiquidityPoolRemoved(address pool);
 
     constructor() Ownable(msg.sender) {
-        uniswapV2Router = IUniswapV2Router02(
-            0x10ED43C718714eb63d5aA57B78B54704E256024E
+        swapRouter = IUniswapV2Router02(DEFAULT_ROUTER);
+        address pool = IUniswapV2Factory(swapRouter.factory()).createPair(
+            address(this),
+            swapRouter.WETH()
         );
-        uniswapV2Pair = IUniswapV2Factory(uniswapV2Router.factory()).createPair(
-                address(this),
-                uniswapV2Router.WETH()
-            );
+        liquidityPools.add(pool);
+        exemptFromSwapAndLiquify(pool);
+        swapRouters[pool] = DEFAULT_ROUTER;
     }
 
-    function setUniswapRouter(address otherRouterAddress) external onlyOwner {
-        uniswapV2Router = IUniswapV2Router02(otherRouterAddress);
+    function setSwapRouter(address otherRouterAddress) external onlyOwner {
+        swapRouter = IUniswapV2Router02(otherRouterAddress);
 
         emit LiquidityRouterChanged(otherRouterAddress);
     }
 
-    function setUniswapPair(address otherPairAddress) external onlyOwner {
+    function addLiquidityPool(address poolAddress, address router)
+        external
+        onlyOwner
+    {
         require(
-            otherPairAddress != address(0),
-            "You must supply a non-zero address"
+            poolAddress != address(0) && router != address(0),
+            "Pool and router both can't be the zero address"
         );
-        uniswapV2Pair = otherPairAddress;
+        liquidityPools.add(poolAddress);
+        // Must exempt swap pair to avoid double dipping on swaps
+        exemptFromSwapAndLiquify(poolAddress);
+        swapRouters[poolAddress] = router;
 
-        emit LiquidityPairChanged(otherPairAddress);
+        emit LiquidityPoolAdded(poolAddress);
+    }
+
+    function delLiquidityPool(address poolAddress) external onlyOwner {
+        liquidityPools.remove(poolAddress);
+        includeInSwapAndLiquify(poolAddress);
+        swapRouters[poolAddress] = address(0);
+
+        emit LiquidityPoolRemoved(poolAddress);
     }
 
     function awardJackpot() internal virtual;
@@ -210,17 +233,6 @@ abstract contract JackpotToken is Ownable {
         resetJackpot();
 
         emit JackpotTimespanChanged(jackpotTimespan);
-    }
-
-    function usdEquivalent(uint256 bnbAmount) public view returns (uint256) {
-        if (bnbAmount == 0) {
-            return 0;
-        }
-        address[] memory path = new address[](2);
-        path[0] = uniswapV2Router.WETH();
-        path[1] = USDT;
-
-        return uniswapV2Router.getAmountsOut(bnbAmount, path)[1];
     }
 
     function getLastBuy() public view returns (address, uint256) {

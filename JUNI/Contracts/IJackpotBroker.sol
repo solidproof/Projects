@@ -27,7 +27,6 @@ struct User {
     uint256 goldId;
     uint256 miscTickets;
     uint256 miscId;
-    uint256 lastRewardsClaimed;
 }
 
 struct RankedJackpot {
@@ -54,24 +53,4 @@ interface IJackpotBroker {
     ) external payable;
 
     function processBroker() external;
-
-    function contribute(JackpotRank rank, uint256 amount) external;
-
-    function addMiscAward(
-        bool isNativeValue,
-        address ticketToken,
-        address awardtoken,
-        uint256 value,
-        uint256 timespan
-    ) external payable;
-
-    function awardTickets(address wallet, uint256 amount) external;
-
-    function refer(
-        address sender,
-        address recipient,
-        uint256 amount
-    ) external;
-
-    function claimRewardTicket() external;
 }
