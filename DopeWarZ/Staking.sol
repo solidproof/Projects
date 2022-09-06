@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity =0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -15,8 +15,8 @@ contract DopeWarzStaking is Ownable {
     uint256 public constant divisor = 10000;
     uint256  public earlyWithdrawFee         = 50; // 50/10000 * 100 = 0.5% 
     //uint256  public performanceFeeReserve    = 190; // 190/10000 * 100 = 1.9%
-    uint256 public blockPerSecond = 3;
-    uint256 public earlyWithdrawFeeTime = 72 * 60 * 60 / blockPerSecond;
+    uint256 public constant BLOCK_PER_SECOND = 3;
+    uint256 public earlyWithdrawFeeTime = 72 * 60 * 60 / BLOCK_PER_SECOND;
     
     uint256 public totalShares;
     // Contracts to Interact with
@@ -45,8 +45,20 @@ contract DopeWarzStaking is Ownable {
     uint256 public totalStaked;
     uint256 public totalClaimed; // Total Claimed as rewards
     uint256 public deploymentTimeStamp; 
+
+    //total pool of funds after update
+    event RewardPoolUpdated (uint256 indexed _amount); 
+    //token emission per block after update
+    event TokenPerBlockUpdated (uint256 indexed _amount); 
+    //Early Withdrawal fee percentage after update 
+    event EarlyWithdrawalFeeUpdated (uint256 indexed _amount); 
+    //Early Withdrawal fee time after update
+    event EarlyWithdrawalTimeUpdated (uint256 indexed _amount); 
+
     
     constructor (ERC20 _drug, uint256 _tokenPerBlock, address _reserveAddress) {
+        require(address(_drug) != address(0x0), "DrugZ address can not be zero");
+        require(_reserveAddress != address(0x0), "Reserve address can not be zero");
         drug = _drug;
         if(_tokenPerBlock <= MAX_TOKEN_PER_BLOCK){
             tokenPerBlock = _tokenPerBlock;
@@ -64,6 +76,7 @@ contract DopeWarzStaking is Ownable {
         require(drug.balanceOf(msg.sender) >= _amount, "Insufficient tokens for transfer");
         totalPool = totalPool.add(_amount);
         drug.safeTransferFrom(msg.sender, address(this), _amount);
+        emit RewardPoolUpdated(totalPool);
     }
 
     /// @notice updates accRewardPerShare based on the last block calculated and totalShares
@@ -86,11 +99,14 @@ contract DopeWarzStaking is Ownable {
     }
 
 
-    
+    /// Store `token per block`.
+    /// @param _amount the new value to store
+    /// @dev stores the provided amount in the state variable `tokenPerBlock` which is used to control token emission
     function setTokenPerBlock (uint256 _amount) public onlyOwner {
         require(_amount >= 0, "Token per Block can not be negative" );
         require(_amount <= MAX_TOKEN_PER_BLOCK, "Token Per Block can not be more than 10");
         tokenPerBlock = _amount;
+        emit TokenPerBlockUpdated(_amount);
     }
 
 
@@ -246,6 +262,7 @@ contract DopeWarzStaking is Ownable {
         require(_fee > 0, "Fee must be greater than 0");
         require(_fee < MAX_FEE, "Fee must be less than 10%");
         earlyWithdrawFee = _fee;
+        emit EarlyWithdrawalFeeUpdated(_fee);
     }
 
 
@@ -255,6 +272,7 @@ contract DopeWarzStaking is Ownable {
     function setEarlyWithdrawFeeTime (uint256 _time) public onlyOwner {
         require(_time > 0, "Time must be greater than 0");
         earlyWithdrawFeeTime = _time;
+        emit EarlyWithdrawalTimeUpdated(_time);
     }
     
 
