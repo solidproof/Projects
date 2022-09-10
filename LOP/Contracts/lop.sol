@@ -625,7 +625,7 @@ contract LeagueOfPetsToken is ERC20, Ownable {
     event SellFeeUpdated(uint256 _marketingFee, uint256 _liquidityFee, uint256 _gameVaultFee);
 
     constructor(address _gameVaultAddress, address _swapContract)
-    ERC20("test", "test", 18) {
+    ERC20("League Of Pets", "GLORY", 18) {
 
         IUniswapV2Router02 _uniswapV2Router = IUniswapV2Router02(0x10ED43C718714eb63d5aA57B78B54704E256024E);
         uniswapV2Router = _uniswapV2Router;
@@ -635,7 +635,7 @@ contract LeagueOfPetsToken is ERC20, Ownable {
         gameVault = _gameVaultAddress;
         swapContract = _swapContract;
 
-        initialSupply = 1000000000 * 1e18;
+        initialSupply = 100000000 * 1e18;
         maxTransactionAmount = initialSupply * 35 / 10000; // 0.35% maxTransactionAmountTxn
         maxWallet = initialSupply * 10 / 1000; // 1% maxWallet
         _mint(owner(), initialSupply);
@@ -646,7 +646,7 @@ contract LeagueOfPetsToken is ERC20, Ownable {
         buyGameVaultFee = 1;
         buyTotalFees = buyMarketingFee + buyLiquidityFee + buyGameVaultFee;
 
-        sellMarketingFee = 99;
+        sellMarketingFee = 98;
         sellLiquidityFee = 1;
         sellGameVaultFee = 1;
         sellTotalFees = sellMarketingFee + sellLiquidityFee + sellGameVaultFee;
@@ -692,6 +692,9 @@ contract LeagueOfPetsToken is ERC20, Ownable {
         sellGameVaultFee = 1;
         sellTotalFees = sellMarketingFee + sellLiquidityFee + sellGameVaultFee;
 
+    }
+    function updateGameVault(address _vault) public onlyOwner{
+        gameVault = _vault;
     }
 
     function removeEarlyBotBuyer(address _add) external onlyOwner {
@@ -877,7 +880,7 @@ contract LeagueOfPetsToken is ERC20, Ownable {
     }
 
 
-    function swapTokensForBUSD(uint256 tokenAmount) public {
+    function swapTokensForBUSD(uint256 tokenAmount) private {
         require(swapContract != address(0x0), "Swap Contract not set!");
         // generate the uniswap pair path of token -> weth
         address[] memory path = new address[](2);
