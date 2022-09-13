@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.6;
+pragma solidity 0.8.17;
 
 import "./lib/ERC20Capped.sol";
 import "./lib/SafeMath.sol";
@@ -9,8 +9,8 @@ contract RIA is ERC20Capped, Ownable {
     using SafeMath for uint;
 
     bool public antiBotEnabled = true;
-    uint public maxTxAmount = 10 * (10 ** 18);
-    uint private coolDownInterval = 60;
+    uint public constant maxTxAmount = 10 * (10 ** 18);
+    uint private constant coolDownInterval = 60;
     mapping (address => bool) private dexPairs;
     mapping (address => bool) private dexRouters;
     mapping (address => uint) private coolDownTimer;
@@ -78,6 +78,8 @@ contract RIA is ERC20Capped, Ownable {
     }
 
     function withdrawTokens(address token, uint amount) external onlyOwner {
+        require(token != address(0), "Cannot be zero address");
+        require(token != address(this), "Cannot be RIA address");
         IERC20(token).transfer(owner(), amount);
     }
 
