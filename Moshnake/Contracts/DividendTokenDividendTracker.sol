@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.13;
+pragma solidity 0.8.13;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
@@ -17,8 +17,8 @@ interface DividendPayingTokenInterface {
     /// @return The amount of dividend in wei that `_owner` can withdraw.
     function dividendOf(address _owner) external view returns (uint256);
 
-    /// @dev SHOULD transfer `dividendOf(msg.sender)` wei to `msg.sender`, and `dividendOf(msg.sender)` SHOULD be 0 after the transfer.
     /// @notice Withdraws the ether distributed to the sender.
+    /// @dev SHOULD transfer `dividendOf(msg.sender)` wei to `msg.sender`, and `dividendOf(msg.sender)` SHOULD be 0 after the transfer.
     ///  MUST emit a `DividendWithdrawn` event if the amount of ether transferred is greater than 0.
     function withdrawDividend() external;
 
@@ -97,16 +97,16 @@ contract DividendPayingToken is
 
     function __DividendPayingToken_init(
         address _rewardToken,
-        string memory _name,
-        string memory _symbol
+        string memory name_,
+        string memory symbol_
     ) internal onlyInitializing {
         __Ownable_init();
-        __ERC20_init(_name, _symbol);
+        __ERC20_init(name_, symbol_);
         rewardToken = _rewardToken;
     }
 
     function distributeCAKEDividends(uint256 amount) public onlyOwner {
-        require(totalSupply() > 0);
+        require(totalSupply() > 0, "total supply should be greater than 0");
 
         if (amount > 0) {
             magnifiedDividendPerShare = magnifiedDividendPerShare.add(
@@ -155,42 +155,42 @@ contract DividendPayingToken is
     }
 
     /// @notice View the amount of dividend in wei that an address can withdraw.
-    /// @param _owner The address of a token holder.
-    /// @return The amount of dividend in wei that `_owner` can withdraw.
-    function dividendOf(address _owner) public view override returns (uint256) {
-        return withdrawableDividendOf(_owner);
+    /// @param owner_ The address of a token holder.
+    /// @return The amount of dividend in wei that `owner_` can withdraw.
+    function dividendOf(address owner_) public view override returns (uint256) {
+        return withdrawableDividendOf(owner_);
     }
 
     /// @notice View the amount of dividend in wei that an address can withdraw.
-    /// @param _owner The address of a token holder.
-    /// @return The amount of dividend in wei that `_owner` can withdraw.
-    function withdrawableDividendOf(address _owner)
+    /// @param owner_ The address of a token holder.
+    /// @return The amount of dividend in wei that `owner_` can withdraw.
+    function withdrawableDividendOf(address owner_)
         public
         view
         override
         returns (uint256)
     {
-        return accumulativeDividendOf(_owner).sub(withdrawnDividends[_owner]);
+        return accumulativeDividendOf(owner_).sub(withdrawnDividends[owner_]);
     }
 
     /// @notice View the amount of dividend in wei that an address has withdrawn.
-    /// @param _owner The address of a token holder.
-    /// @return The amount of dividend in wei that `_owner` has withdrawn.
-    function withdrawnDividendOf(address _owner)
+    /// @param owner_ The address of a token holder.
+    /// @return The amount of dividend in wei that `owner_` has withdrawn.
+    function withdrawnDividendOf(address owner_)
         public
         view
         override
         returns (uint256)
     {
-        return withdrawnDividends[_owner];
+        return withdrawnDividends[owner_];
     }
 
     /// @notice View the amount of dividend in wei that an address has earned in total.
-    /// @dev accumulativeDividendOf(_owner) = withdrawableDividendOf(_owner) + withdrawnDividendOf(_owner)
-    /// = (magnifiedDividendPerShare * balanceOf(_owner) + magnifiedDividendCorrections[_owner]) / magnitude
-    /// @param _owner The address of a token holder.
-    /// @return The amount of dividend in wei that `_owner` has earned in total.
-    function accumulativeDividendOf(address _owner)
+    /// @dev accumulativeDividendOf(owner_) = withdrawableDividendOf(owner_) + withdrawnDividendOf(owner_)
+    /// = (magnifiedDividendPerShare * balanceOf(owner_) + magnifiedDividendCorrections[owner_]) / magnitude
+    /// @param owner_ The address of a token holder.
+    /// @return The amount of dividend in wei that `owner_` has earned in total.
+    function accumulativeDividendOf(address owner_)
         public
         view
         override
@@ -198,9 +198,9 @@ contract DividendPayingToken is
     {
         return
             magnifiedDividendPerShare
-                .mul(balanceOf(_owner))
+                .mul(balanceOf(owner_))
                 .toInt256Safe()
-                .add(magnifiedDividendCorrections[_owner])
+                .add(magnifiedDividendCorrections[owner_])
                 .toUint256Safe() / magnitude;
     }
 
@@ -214,16 +214,7 @@ contract DividendPayingToken is
         address to,
         uint256 value
     ) internal virtual override {
-        require(false);
-
-        int256 _magCorrection = magnifiedDividendPerShare
-            .mul(value)
-            .toInt256Safe();
-        magnifiedDividendCorrections[from] = magnifiedDividendCorrections[from]
-            .add(_magCorrection);
-        magnifiedDividendCorrections[to] = magnifiedDividendCorrections[to].sub(
-            _magCorrection
-        );
+        require(false, "No allowed to transfer");
     }
 
     /// @dev Internal function that mints tokens to an account.
@@ -288,7 +279,7 @@ contract DividendTokenDividendTracker is OwnableUpgradeable, DividendPayingToken
     );
 
     constructor() {
-
+        
     }
 
     function initialize(
@@ -312,15 +303,8 @@ contract DividendTokenDividendTracker is OwnableUpgradeable, DividendPayingToken
         require(false, "Dividend_Tracker: No transfers allowed");
     }
 
-    function withdrawDividend() public pure override {
-        require(
-            false,
-            "Dividend_Tracker: withdrawDividend disabled. Use the 'claim' function on the main BABYTOKEN contract."
-        );
-    }
-
     function excludeFromDividends(address account) external onlyOwner {
-        require(!excludedFromDividends[account]);
+        require(!excludedFromDividends[account], "No allowed for this account");
         excludedFromDividends[account] = true;
 
         _setBalance(account, 0);
