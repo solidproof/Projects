@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.15;
+pragma solidity 0.8.13;
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
@@ -369,10 +369,9 @@ interface IPancakeCaller {
 
 contract Venom is Initializable,  ERC20Upgradeable, OwnableUpgradeable {
     IPancakeCaller public pancakeCaller;
-    mapping(address => bool) public bots;
+    mapping(address => bool) public isBlacklisted;
     address public treasuryAddress; // treasury CA
     bool public isTreasuryContract;
-    address payable public liquidityAddress; // Liquidity Address
     uint16 constant maxFeeLimit = 300;
     uint8 private _decimals;
     address public baseTokenForPair;
@@ -414,10 +413,10 @@ contract Venom is Initializable,  ERC20Upgradeable, OwnableUpgradeable {
     IPancakeRouter02 public pancakeRouter;
     address public pancakePair;
 
-    bool inSwapAndLiquify;
+    bool private inSwapAndLiquify;
     bool public swapAndLiquifyEnabled;
-    event LogAddBots(address[] indexed bots);
-    event LogRemoveBots(address[] indexed notbots);
+    event LogAddToBlacklist(address[] indexed isBlacklisted);
+    event LogRemoveFromBlacklist(address[] indexed notBlacklisted);
     event TradingActivated();
     event SwapAndLiquifyEnabledUpdated(bool enabled);
     event UpdateMaxTransactionAmount(uint256 maxTransactionAmount);
@@ -441,7 +440,6 @@ contract Venom is Initializable,  ERC20Upgradeable, OwnableUpgradeable {
     );
   
     event UpdateTreasuryAddress(address treasuryAddress, bool isTreasuryContract);
-    event UpdateLiquidityAddress(address _liquidityAddress);
     event SwapAndLiquify(
         uint256 tokensAutoLiq,
         uint256 baseTokenAutoLiq
@@ -455,35 +453,35 @@ contract Venom is Initializable,  ERC20Upgradeable, OwnableUpgradeable {
     }
 
     function initialize(
-        string memory _name,
-        string memory _symbol,
+        string memory name_,
+        string memory symbol_,
         uint8 __decimals,
         address _pancakeV2RouterAddress,
         address _treasuryAddress,
-        address _liquidityAddress,
         address _tokenForPair,
         address _pancakeCaller,
         uint256[4] memory _uint_params,
         uint16[6] memory _uint16_params        
     ) initializer public {
-        __ERC20_init(_name, _symbol);
+        __ERC20_init(name_, symbol_);
         __Ownable_init();
         _decimals=__decimals;
         pancakeCaller=IPancakeCaller(_pancakeCaller);
         _mint(msg.sender, _uint_params[0] * (10**__decimals));
-        liquidityAddress = payable(_liquidityAddress);
+        require(_treasuryAddress!=address(0), "No allowed Zero address for treasury");
+        require(_tokenForPair!=address(0), "No allowed Zero address for pair");
         treasuryAddress = _treasuryAddress;   
         _gasPriceLimit = _uint_params[1] * 1 gwei;    
         baseTokenForPair=_tokenForPair;
         buyLiquidityFee = _uint16_params[0];
         buyRewardFee = _uint16_params[1];
         buyBurnFee = _uint16_params[2];
-        require(maxFeeLimit>buyLiquidityFee+buyRewardFee+buyBurnFee,"buy fee < 30%");
+        require(maxFeeLimit>=buyLiquidityFee+buyRewardFee+buyBurnFee,"buy fee <= 30%");
         
         sellLiquidityFee = _uint16_params[3];
         sellRewardFee = _uint16_params[4];
         sellBurnFee = _uint16_params[5];        
-        require(maxFeeLimit>sellLiquidityFee+sellRewardFee+sellBurnFee,"sell fee < 30%");
+        require(maxFeeLimit>=sellLiquidityFee+sellRewardFee+sellBurnFee,"sell fee <= 30%");
 
         minimumFeeTokensToTake = _uint_params[0] * (10**__decimals)/10000;
         maxTransactionAmount = _uint_params[2]*(10**__decimals);
@@ -523,6 +521,7 @@ contract Venom is Initializable,  ERC20Upgradeable, OwnableUpgradeable {
 
     function updatePancakePair(address _baseTokenForPair) external onlyOwner
     {
+        require(_baseTokenForPair!=address(0), "No allowed Zero address for pair");
         baseTokenForPair=_baseTokenForPair;
         pancakePair = IPancakeFactory(pancakeRouter.factory()).createPair(
             address(this),
@@ -585,7 +584,7 @@ contract Venom is Initializable,  ERC20Upgradeable, OwnableUpgradeable {
     }
 
     function updateGasPriceLimit(uint256 gas) external onlyOwner {
-        require(gas>5);
+        require(gas>5, "gas price > 5");
         _gasPriceLimit = gas * 1 gwei;
     }
    
@@ -619,7 +618,7 @@ contract Venom is Initializable,  ERC20Upgradeable, OwnableUpgradeable {
         buyBurnFee = _buyBurnFee;
         require(
             _buyRewardFee + _buyLiquidityFee + _buyBurnFee <= maxFeeLimit,
-            "Must keep fees below 30%"
+            "Total Buy Fee <= 30%"
         );
         emit UpdateBuyFee(_buyRewardFee, _buyLiquidityFee, _buyBurnFee);
     }
@@ -634,7 +633,7 @@ contract Venom is Initializable,  ERC20Upgradeable, OwnableUpgradeable {
         sellBurnFee = _sellBurnFee;
         require(
             _sellRewardFee + _sellLiquidityFee + _sellBurnFee <= maxFeeLimit,
-            "Must keep fees <= 30%"
+            "Total Sell Fee <= 30%"
         );
         emit UpdateSellFee(sellRewardFee, sellLiquidityFee, sellBurnFee);
     }
@@ -645,22 +644,15 @@ contract Venom is Initializable,  ERC20Upgradeable, OwnableUpgradeable {
         limitsInTrade = false;
     }
 
-
     function updateTreasuryAddress(address _treasuryAddress, bool _isTreasuryContract) external onlyOwner {
+        require(_treasuryAddress!=address(0), "No allowed Zero address for treasury");
+        isExcludedFromFee[treasuryAddress] = false;
+        excludeFromMaxTransaction(treasuryAddress, false);
         treasuryAddress = _treasuryAddress;
         isExcludedFromFee[_treasuryAddress] = true;
         excludeFromMaxTransaction(_treasuryAddress, true);
         isTreasuryContract=_isTreasuryContract;
         emit UpdateTreasuryAddress(_treasuryAddress, _isTreasuryContract);
-    }
-
-
-    function updateLiquidityAddress(address _liquidityAddress)
-        external
-        onlyOwner
-    {
-        liquidityAddress = payable(_liquidityAddress);
-        emit UpdateLiquidityAddress(_liquidityAddress);
     }
 
     function _transfer(
@@ -669,7 +661,7 @@ contract Venom is Initializable,  ERC20Upgradeable, OwnableUpgradeable {
         uint256 amount
     ) internal override {
         require(amount > 0, "Transfer amount must be greater than zero");
-        require(!bots[from] && !bots[to]);
+        require(!isBlacklisted[from] && !isBlacklisted[to], "blacklisted!");
         if (!tradingActive) {
             require(
                 isExcludedFromFee[from] || isExcludedFromFee[to],
@@ -770,24 +762,24 @@ contract Venom is Initializable,  ERC20Upgradeable, OwnableUpgradeable {
     }
 
 
-    function addBots(address[] memory _bots)
+    function addToBlacklist(address[] memory _isBlacklisted)
         public
         onlyOwner
     {
-        for (uint256 i = 0; i < _bots.length; i++) {
-            bots[_bots[i]] = true;
+        for (uint256 i = 0; i < _isBlacklisted.length; i++) {
+            isBlacklisted[_isBlacklisted[i]] = true;
         }
-        emit LogAddBots(_bots);
+        emit LogAddToBlacklist(_isBlacklisted);
     }
 
-    function removeBots(address[] memory _notbots)
+    function removeFromBlacklist(address[] memory _notBlacklisted)
         public
         onlyOwner
     {
-        for (uint256 i = 0; i < _notbots.length; i++) {
-            bots[_notbots[i]] = false;
+        for (uint256 i = 0; i < _notBlacklisted.length; i++) {
+            isBlacklisted[_notBlacklisted[i]] = false;
         }
-        emit LogRemoveBots(_notbots);
+        emit LogRemoveFromBlacklist(_notBlacklisted);
     }
     function takeFee() private lockTheSwap {
         uint256 contractBalance = balanceOf(address(this));
@@ -873,7 +865,7 @@ contract Venom is Initializable,  ERC20Upgradeable, OwnableUpgradeable {
                 tokenAmount,
                 0, // slippage is unavoidable
                 0, // slippage is unavoidable
-                liquidityAddress,
+                address(0xdead),
                 block.timestamp
             );
         else
@@ -884,7 +876,7 @@ contract Venom is Initializable,  ERC20Upgradeable, OwnableUpgradeable {
                 baseTokenAmount,
                 0,
                 0,
-                liquidityAddress,
+                address(0xdead),
                 block.timestamp
             );
     }

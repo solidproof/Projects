@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.13;
+pragma solidity 0.8.13;
 
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
@@ -394,8 +394,6 @@ contract Moshnake is Initializable,  ERC20Upgradeable, ERC20PermitUpgradeable, E
     uint16 public sellOperationFee;
     uint16 public buyOperationFee;
 
-    address public lpWallet;
-
     address public _operationWalletAddress;
     uint256 public gasForProcessing;
     uint256 public maxWallet;
@@ -420,10 +418,6 @@ contract Moshnake is Initializable,  ERC20Upgradeable, ERC20PermitUpgradeable, E
     event UpdateSwapTokensAtAmount(uint256 swapTokensAtAmount);
     event SetAutomatedMarketMakerPair(address indexed pair, bool indexed value);
 
-    event LiquidityWalletUpdated(
-        address indexed newLiquidityWallet,
-        address indexed oldLiquidityWallet
-    );
     event OperationWalletUpdated(
         address indexed newOperationWallet,
         address indexed oldOperationWallet
@@ -465,6 +459,8 @@ contract Moshnake is Initializable,  ERC20Upgradeable, ERC20PermitUpgradeable, E
         uint16 sellBurnFee,
         uint16 buyBurnFee
     );  
+    event UpdateMaxWallet(uint256 maxWallet);
+    event UpdateMaxTransactionAmount(uint256 maxTransactionAmount);
 
     function initialize(
         string memory name_,
@@ -473,7 +469,7 @@ contract Moshnake is Initializable,  ERC20Upgradeable, ERC20PermitUpgradeable, E
         uint256 totalSupply_,
         uint256 _maxWallet,
         uint256 _maxTransactionAmount,
-        address[6] memory addrs, // reward, router, operation wallet, lp wallet, dividendTracker, base Token
+        address[5] memory addrs, // reward, router, operation wallet, lp wallet, dividendTracker, base Token
         address _pancakeswapV2Caller,
         uint16[6] memory feeSettings, // rewards, liquidity, operation
         uint256 minimumTokenBalanceForDividends_
@@ -485,28 +481,27 @@ contract Moshnake is Initializable,  ERC20Upgradeable, ERC20PermitUpgradeable, E
         _decimals = decimals_;
         rewardToken = addrs[0];
         _operationWalletAddress = addrs[2];
-        lpWallet = addrs[3];
         pancakeCaller=IPancakeCaller(_pancakeswapV2Caller);
-        baseTokenForPair=addrs[5];
+        baseTokenForPair=addrs[4];
         sellLiquidityFee = feeSettings[0];
         buyLiquidityFee = feeSettings[1];
         sellOperationFee = feeSettings[2];
         buyOperationFee = feeSettings[3];
         sellBurnFee = feeSettings[4];
         buyBurnFee = feeSettings[5];
-        require(sellLiquidityFee+sellOperationFee+sellBurnFee <= 300);
-        require(buyLiquidityFee+buyOperationFee+buyBurnFee <= 300);
+        require(sellLiquidityFee+sellOperationFee+sellBurnFee <= 300, "Total Sell Fee <= 30%");
+        require(buyLiquidityFee+buyOperationFee+buyBurnFee <= 300, "Total Sell Fee <= 30%");
         swapTokensAtAmount = totalSupply_/(10000);
 
         gasForProcessing = 300000;
 
-        dividendTracker = payable(Clones.clone(addrs[4]));
+        dividendTracker = payable(Clones.clone(addrs[3]));
         DividendTokenDividendTracker(dividendTracker).initialize(
             rewardToken,
             minimumTokenBalanceForDividends_
         );
-        require(_maxTransactionAmount>0);
-        require(_maxWallet>0);
+        require(_maxTransactionAmount>0, "Max transaction Amount >0");
+        require(_maxWallet>0, "Max Wallet > 0");
         maxWallet=_maxWallet;
         maxTransactionAmount=_maxTransactionAmount;
         pancakeswapV2Router = addrs[1];
@@ -562,7 +557,7 @@ contract Moshnake is Initializable,  ERC20Upgradeable, ERC20PermitUpgradeable, E
             newAddress != dividendTracker,
             "The dividend tracker already has that address"
         );
-
+        require(newAddress!=address(0), "No Zero address");
         address newDividendTracker =payable(newAddress);
 
         require(
@@ -583,6 +578,7 @@ contract Moshnake is Initializable,  ERC20Upgradeable, ERC20PermitUpgradeable, E
 
     function updatePancakeswapV2Pair(address _baseTokenForPair) external onlyOwner
     {
+        require(_baseTokenForPair!=address(0), "No Zero address");
         baseTokenForPair=_baseTokenForPair;
         pancakeswapV2Pair = IPancakeFactory(IPancakeRouter02(pancakeswapV2Router).factory()).createPair(
             address(this),
@@ -591,6 +587,7 @@ contract Moshnake is Initializable,  ERC20Upgradeable, ERC20PermitUpgradeable, E
         _setAutomatedMarketMakerPair(pancakeswapV2Pair, true);
     }
     function updatePancakeswapV2Router(address newAddress) public onlyOwner {
+        require(newAddress!=address(0), "No Zero address");
         require(
             newAddress != pancakeswapV2Router,
             "The router already has that address"
@@ -605,22 +602,22 @@ contract Moshnake is Initializable,  ERC20Upgradeable, ERC20PermitUpgradeable, E
     }
 
     function updateMaxWallet(uint256 _maxWallet) external onlyOwner {
-        require(_maxWallet>0);
+        require(_maxWallet>0, "Max Wallet>0");
         maxWallet = _maxWallet;
+        emit UpdateMaxWallet(maxWallet);
     }
 
     function updateMaxTransactionAmount(uint256 _maxTransactionAmount)
         external
         onlyOwner
     {
-        require(_maxTransactionAmount>0);
+        require(_maxTransactionAmount>0, "Max Transaction Amount>0");
         maxTransactionAmount = _maxTransactionAmount;
+        emit UpdateMaxTransactionAmount(maxTransactionAmount);
     }   
 
     function excludeFromFees(address account, bool excluded) public onlyOwner {
-
         _isExcludedFromFees[account] = excluded;
-
         emit ExcludeFromFees(account, excluded);
     }
 
@@ -629,15 +626,13 @@ contract Moshnake is Initializable,  ERC20Upgradeable, ERC20PermitUpgradeable, E
     }
 
     function setOperationWallet(address payable wallet) external onlyOwner {
+        excludeFromFees(_operationWalletAddress, false);      
+        isExcludedFromMaxTransactionAmount[_operationWalletAddress]=false;
         address tmp=_operationWalletAddress;
         _operationWalletAddress = wallet;
+        excludeFromFees(_operationWalletAddress, true);      
+        isExcludedFromMaxTransactionAmount[_operationWalletAddress]=true;
         emit OperationWalletUpdated(_operationWalletAddress, tmp);
-    }
-
-    function updateLPWallet(address _lpWallet) external onlyOwner {
-        address tmp=lpWallet;
-        lpWallet = _lpWallet;
-        emit LiquidityWalletUpdated(lpWallet, tmp);
     }
 
     function updateLiquidityFee(
@@ -1019,7 +1014,7 @@ contract Moshnake is Initializable,  ERC20Upgradeable, ERC20PermitUpgradeable, E
                 tokenAmount,
                 0, // slippage is unavoidable
                 0, // slippage is unavoidable
-                lpWallet,
+                address(0xdead),
                 block.timestamp
             );
         else{
@@ -1031,7 +1026,7 @@ contract Moshnake is Initializable,  ERC20Upgradeable, ERC20PermitUpgradeable, E
                 baseTokenAmount,
                 0,
                 0,
-                lpWallet,
+                address(0xdead),
                 block.timestamp
             );    
         }
