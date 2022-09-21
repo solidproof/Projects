@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.13;
+pragma solidity 0.8.13;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
@@ -32,10 +32,10 @@ contract DOSA is ERC20, Ownable{
         uint256 dosaBomb;
     }
 
-    Fees public buyFees = Fees(3,3,2);
-    Fees public sellFees = Fees(3,3,2);
-    uint256 public totalSellFee = 8;
-    uint256 public totalBuyFee = 8;
+    Fees public buyFees = Fees(3,2,2);
+    Fees public sellFees = Fees(3,2,2);
+    uint256 public totalSellFee = 7;
+    uint256 public totalBuyFee = 7;
 
     bool public enableTransfers;
 
@@ -56,7 +56,8 @@ contract DOSA is ERC20, Ownable{
     event ExemptFromFeeUpdated(address user, bool state);
     event PairUpdated(address newPair);
 
-    constructor(address _routerAddress, string memory _name, string memory _symbol) ERC20(_name, _symbol) {
+    constructor(address _routerAddress, string memory _name_, string memory _symbol_) ERC20(_name_, _symbol_) {
+        require(_routerAddress != address(0), "Router address cannot be zero address");
         IRouter _router = IRouter(_routerAddress);
 
         address _pair = IFactory(_router.factory()).createPair(address(this), _router.WETH());
@@ -78,6 +79,9 @@ contract DOSA is ERC20, Ownable{
     }
 
     function setTaxRecipients(address _lpRecipient, address _marketingWallet, address _dosaBombWallet) external onlyOwner{
+        require(_lpRecipient != address(0), "lpRecipient cannot be the zero address");
+        require(_marketingWallet != address(0), "marketingWallet cannot be the zero address");
+        require(_dosaBombWallet != address(0), "dosaBombWallet cannot be the zero address");
         lpRecipient = _lpRecipient;
         marketingWallet = _marketingWallet;
         dosaBombWallet = _dosaBombWallet;
@@ -90,20 +94,20 @@ contract DOSA is ERC20, Ownable{
     }
 
     function setTransferFee(uint256 _transferFee) external onlyOwner{
-        require(_transferFee < 9, "Transfer fee must be less than 9");
+        require(_transferFee < 7, "Transfer fee must be less than 7");
         transferFee = _transferFee;
         emit FeesUpdated();
     }
 
     function setBuyFees(uint256 _lp, uint256 _marketing, uint256 _dosaBomb) external onlyOwner{
-        require(_lp + _marketing + _dosaBomb < 9, "Buy fee must be less than 9");
+        require(_lp + _marketing + _dosaBomb < 7, "Buy fee must be less than 7");
         buyFees = Fees(_lp, _marketing, _dosaBomb);
         totalBuyFee = _lp + _marketing + _dosaBomb;
         emit FeesUpdated();
     }
 
     function setSellFees(uint256 _lp, uint256 _marketing, uint256 _dosaBomb) external onlyOwner{
-        require(_lp + _marketing + _dosaBomb < 9, "Sell fee must be less than 9");
+        require(_lp + _marketing + _dosaBomb < 7, "Sell fee must be less than 7");
         sellFees = Fees(_lp, _marketing, _dosaBomb);
         totalSellFee = _lp + _marketing + _dosaBomb;
         emit FeesUpdated();
@@ -131,6 +135,7 @@ contract DOSA is ERC20, Ownable{
     }
 
     function setPair(address newPair) external onlyOwner{
+        require(newPair != address(0), "Pair cannot be zero address");
         pair = newPair;
         emit PairUpdated(newPair);
     }
@@ -147,6 +152,7 @@ contract DOSA is ERC20, Ownable{
     }
 
     function rescueERC20(address tokenAdd, uint256 amount) external onlyOwner{
+        require(tokenAdd != address(this), "Cannot rescue self");
         require(IERC20(tokenAdd).balanceOf(address(this)) >= amount, "Insufficient ERC20 balance");
         IERC20(tokenAdd).transfer(owner(), amount);
     }
@@ -164,17 +170,21 @@ contract DOSA is ERC20, Ownable{
         if(!swapping && !exemptFee[from] && !exemptFee[to]){
             if(to == pair){
                 taxAmt = amount * totalSellFee / 100;
-            }
-            else if(from == pair){
+            } else if(from == pair){
                 taxAmt = amount * totalBuyFee / 100;
+            } else {
+                taxAmt = amount * transferFee / 100;
             }
-            else taxAmt = amount * transferFee / 100;
         }
 
-        if (!swapping && swapEnabled && to == pair && totalSellFee > 0) handle_fees();
+        if (!swapping && swapEnabled && to == pair && totalSellFee > 0) {
+            handle_fees();
+        }
 
         super._transfer(from, to, amount - taxAmt);
-        if(taxAmt > 0) super._transfer(from, address(this), taxAmt);
+        if(taxAmt > 0) {
+            super._transfer(from, address(this), taxAmt);
+        }
     }
 
     function handle_fees() private inSwap {
