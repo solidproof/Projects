@@ -48,6 +48,9 @@ contract D2TPresale is Ownable{
     mapping(uint256 => uint256) public tokenBalance;
     mapping(uint256 => uint256) public vestedTokenBalance;
 
+    event PriceSet(uint);
+    event BoughtD2TTokens(uint amount, uint NFTId, address);
+
     constructor(address _BNB20Token, address _router, address _p2DTNFTAddress, uint256 _duration) {
         D2TToken = IERC20(_BNB20Token);
         router = IUniswapV2Router02(_router);
@@ -76,6 +79,9 @@ contract D2TPresale is Ownable{
             addressList.length == percentList.length,
             "Address length should be same percent list length"
         );
+        for(uint i = 0; i < addressList.length; i++) {
+            require(addressList[i] != address(0), "Null address");
+        }
         uint256 all_percent = 0;
         for (uint256 i = 0; i < percentList.length; i++) {
             all_percent += percentList[i];
@@ -98,7 +104,7 @@ contract D2TPresale is Ownable{
         onlyOwner
     {
         presalePeriod = _presalePeriod.mul(1 days);
-        presaleEndTime = presaleStartTime.add(presalePeriod);
+        presaleEndTime = presaleStartTime.add(_presalePeriod);
     }
     
     function withdrawD2Token(uint256 amount) public onlyOwner{
@@ -129,6 +135,8 @@ contract D2TPresale is Ownable{
 
     function setPrice(uint256 _setPrice) public onlyOwner {
         BNB20TokenPrice = _setPrice;
+
+        emit PriceSet(_setPrice);
     }
 
     function buyD2TTokenWithBNB(uint256 tokenCount) public payable {
@@ -150,6 +158,8 @@ contract D2TPresale is Ownable{
         mintNFT(msg.sender, tokenId);
         tokenBalance[tokenId] = tokenCount.mul(10**D2TToken.decimals());
         totalSoldTokens += tokenCount.mul(10**D2TToken.decimals());
+
+        emit BoughtD2TTokens(tokenCount, tokenId, msg.sender);
     }
 
     function buyD2TTokenWithUSDT(uint256 tokenCount) public {
@@ -170,6 +180,8 @@ contract D2TPresale is Ownable{
         mintNFT(msg.sender, tokenId);
         tokenBalance[tokenId] = tokenCount.mul(10**D2TToken.decimals());
         totalSoldTokens += tokenCount.mul(10**D2TToken.decimals());
+
+        emit BoughtD2TTokens(tokenCount, tokenId, msg.sender);
     }
 
     function getUSDTAmount(uint256 _tokenAmount)  view internal returns(uint256){
@@ -214,6 +226,7 @@ contract D2TPresale is Ownable{
     }
 
     function setVestedAdminAddress(address _addr) external onlyOwner {
+        require(_addr != address(0), "Null address");    
         vestAdminAddress = _addr;
     }
 
