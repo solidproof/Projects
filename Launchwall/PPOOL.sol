@@ -1,3 +1,4 @@
+ 
 // SPDX-License-Identifier: Unlicensed
 pragma solidity 0.8.17;
 
@@ -158,6 +159,7 @@ contract PPool is Context, Ownable {
 
     // ===== Start: Owner Functions =====
     function updateBuybackPercent(uint256 percentBuyback_) external onlyOwner {
+        require(percentBuyback_ <= 10, "too high");
         totalStats.percentBuyback = percentBuyback_;
         emit updateBuybackPercentEvent(percentBuyback_);
     }
