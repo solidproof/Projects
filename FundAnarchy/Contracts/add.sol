@@ -1,24 +1,26 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.2;
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+
 import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/draft-ERC20PermitUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20VotesUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20VotesCompUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 import "./IUniswapV2Factory.sol";
 
-contract Add is Initializable, UUPSUpgradeable, ERC20Upgradeable, ERC20PermitUpgradeable, ERC20VotesUpgradeable, ERC20VotesCompUpgradeable, OwnableUpgradeable, PausableUpgradeable {
-    using SafeMathUpgradeable for uint256;
+contract Add is Initializable, ERC20Upgradeable, PausableUpgradeable, OwnableUpgradeable, ERC20PermitUpgradeable, ERC20VotesUpgradeable, UUPSUpgradeable {
+	using SafeMathUpgradeable for uint256;
     address public treasury;
 	address public marketing;
 	address public staking;
 
     bool private swapping;
 	bool public swapEnable;
+
+	bool private initialized;
 
 	uint256 public swapTokensAtAmount;
 	uint256 public maxWalletAmount;
@@ -41,15 +43,22 @@ contract Add is Initializable, UUPSUpgradeable, ERC20Upgradeable, ERC20PermitUpg
     event TaxUpdated(uint256 taxAmount);
 	event SetAutomatedMarketMakerPair(address indexed pair, bool indexed value);
 	event ExcludeFromMaxWalletToken(address indexed account, bool isExcluded);
+	event SwapTokenAmountUpdated(uint256 indexed amount);
+	event MaxWalletAmountUpdated(uint256 indexed amount);
+	event SwapStatusUpdated(bool indexed status);
 
-    function initialize(address initialHolder) public initializer {
-        OwnableUpgradeable.__Ownable_init();
-        ERC20Upgradeable.__ERC20_init("Anarchist Development DAO", "ADD");
-        ERC20PermitUpgradeable.__ERC20Permit_init("add");
-        ERC20VotesUpgradeable.__ERC20Votes_init_unchained();
-        __Pausable_init_unchained();
-        ERC20VotesCompUpgradeable.__ERC20VotesComp_init_unchained();
-        super._mint(initialHolder, 100000000000 * (10**18));
+    function initialize() initializer public {
+	    require(!initialized, "Contract instance has already been initialized");
+		initialized = true;
+
+		__ERC20_init("Anarchist Development DAO", "ADD");
+        __Pausable_init();
+        __Ownable_init();
+        __ERC20Permit_init("add");
+        __ERC20Votes_init();
+        __UUPSUpgradeable_init();
+
+        _mint(msg.sender, 100000000000 * (10**18));
 
 		IUniswapV2Router02 _uniswapV2Router = IUniswapV2Router02(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
         address _uniswapV2Pair = IUniswapV2Factory(_uniswapV2Router.factory()).createPair(address(this), _uniswapV2Router.WETH());
@@ -83,21 +92,22 @@ contract Add is Initializable, UUPSUpgradeable, ERC20Upgradeable, ERC20PermitUpg
         maxWalletAmount = 1000000000 * (10**18);
     }
 
-	function _mint(address to, uint256 amount) internal override(ERC20Upgradeable, ERC20VotesUpgradeable){
+	function _authorizeUpgrade(address newImplementation) internal onlyOwner override {}
+
+	function _mint(address to, uint256 amount) internal override(ERC20Upgradeable, ERC20VotesUpgradeable) {
         super._mint(to, amount);
     }
 
-    function _burn(address account, uint256 amount) internal override(ERC20Upgradeable, ERC20VotesUpgradeable){
+    function _burn(address account, uint256 amount) internal override(ERC20Upgradeable, ERC20VotesUpgradeable) {
         super._burn(account, amount);
     }
 
-    function _beforeTokenTransfer(address from, address to, uint256 amount) internal virtual override {
-        super._beforeTokenTransfer(from, to, amount);
-        require(!paused(), "ERC20Pausable: token transfer while paused");
+    function _afterTokenTransfer(address from, address to, uint256 amount) internal override(ERC20Upgradeable, ERC20VotesUpgradeable){
+        super._afterTokenTransfer(from, to, amount);
     }
 
-    function _afterTokenTransfer(address from, address to, uint256 amount) internal override(ERC20Upgradeable, ERC20VotesUpgradeable){
-        ERC20VotesUpgradeable._afterTokenTransfer(from, to, amount);
+	function _beforeTokenTransfer(address from, address to, uint256 amount) internal whenNotPaused override {
+        super._beforeTokenTransfer(from, to, amount);
     }
 
     function setAddress(address _treasury) external onlyOwner{
@@ -127,26 +137,27 @@ contract Add is Initializable, UUPSUpgradeable, ERC20Upgradeable, ERC20PermitUpg
         emit WhitelistAddressUpdated(_whitelist, _status);
     }
 
-    function _maxSupply() internal view virtual override(ERC20VotesCompUpgradeable,ERC20VotesUpgradeable) returns (uint224) {
+    function _maxSupply() internal view virtual override(ERC20VotesUpgradeable) returns (uint224) {
         return type(uint224).max;
-    }
-
-    function _authorizeUpgrade(address) internal view override {
-        require(owner() == msg.sender, "Only owner can upgrade implementation");
     }
 
 	function setSwapTokensAtAmount(uint256 amount) external onlyOwner {
   	     require(amount <= totalSupply(), "Amount cannot be over the total supply.");
 		 swapTokensAtAmount = amount;
+
+		 emit SwapTokenAmountUpdated(amount);
   	}
 
 	function setMaxWalletAmount(uint256 amount) public onlyOwner {
 		require(amount <= totalSupply(), "Amount cannot be over the total supply.");
 		maxWalletAmount = amount;
+
+		emit MaxWalletAmountUpdated(amount);
 	}
 
 	function setSwapEnable(bool _enabled) public onlyOwner {
         swapEnable = _enabled;
+	    emit SwapStatusUpdated(_enabled);
     }
 
 	function setDAOFee(uint256 buy, uint256 sell, uint256 p2p) external onlyOwner {
@@ -216,10 +227,11 @@ contract Add is Initializable, UUPSUpgradeable, ERC20Upgradeable, ERC20PermitUpg
     }
 
 	function migrateETH(address payable recipient) public onlyOwner {
+	    require(recipient != address(0), "Zero address");
         recipient.transfer(address(this).balance);
     }
 
-    function _transfer(address sender, address recipient, uint256 amount) internal virtual override{
+    function _transfer(address sender, address recipient, uint256 amount) internal override(ERC20Upgradeable){
         require(sender != address(0), "ERC20: transfer from the zero address");
         require(recipient != address(0), "ERC20: transfer to the zero address");
 
@@ -265,5 +277,13 @@ contract Add is Initializable, UUPSUpgradeable, ERC20Upgradeable, ERC20PermitUpg
 		uint256 _marketingFee = amount.mul(p2p ? marketingFee[2] : sell ? marketingFee[1] : marketingFee[0]).div(10000);
 		uint256 _stakingFee = amount.mul(p2p ? stakingPoolFee[2] : sell ? stakingPoolFee[1] : stakingPoolFee[0]).div(10000);
         return (_DAOFee, _marketingFee, _stakingFee);
+    }
+
+	function pause() public onlyOwner {
+        _pause();
+    }
+
+    function unpause() public onlyOwner {
+        _unpause();
     }
 }
