@@ -15,9 +15,8 @@ In an increasingly global economy, financial institutions are more vulnerable to
 This project was first a report with several projects. These were subsequently divided from each other into separate reports. You can still see also the imports, filehashes etc. in the other files.
 
 Projects was:
-[Supontis]()
-[Dogealiens]()
-[Rocketsize]()
+[Supontis](https://github.com/solidproof/projects/tree/main/Supontis)
+[Rocketsize](https://github.com/solidproof/projects/tree/main/Rocketsize)
 
 📱 How you can contact
 [hello@solidproof.io](mailto:hello@solidproof.io)
