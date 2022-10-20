@@ -5,28 +5,28 @@
 In an increasingly global economy, financial institutions are more vulnerable to illicit criminal activities. Know Your Customer (KYC) standards are designed to protect financial institutions against fraud, corruption, money laundering and terrorist financing.
 
 
-✅  Certificate of Compliance
-✅  Vulnerability Report & Code Recommendations
-✅  Automated Vulnerability Test (Slither, MythX, Custom Scripts)
-✅  Manual Security Testing (Manual Code Check, SWC-Registry)
+✅  Certificate of Compliance<br/>
+✅  Vulnerability Report & Code Recommendations<br/>
+✅  Automated Vulnerability Test (Slither, MythX, Custom Scripts)<br/>
+✅  Manual Security Testing (Manual Code Check, SWC-Registry)<br/>
 
 # Note
 
 This project was first a report with several projects. These were subsequently divided from each other into separate reports. You can still see also the imports, filehashes etc. in the other files.
 
-Projects was:
-[Supontis](https://github.com/solidproof/projects/tree/main/Supontis)
-[Rocketsize](https://github.com/solidproof/projects/tree/main/Rocketsize)
+Projects was:<br/>
+[Supontis](https://github.com/solidproof/projects/tree/main/Supontis)<br/>
+[Rocketsize](https://github.com/solidproof/projects/tree/main/Rocketsize)<br/>
 
-📱 How you can contact
-[hello@solidproof.io](mailto:hello@solidproof.io)
-[Telegram direct contact](http://t.me/solidproof_io)
-[Our Website](https://solidproof.io/)
+📱 How you can contact<br/>
+[hello@solidproof.io](mailto:hello@solidproof.io)<br/>
+[Telegram direct contact](http://t.me/solidproof_io)<br/>
+[Our Website](https://solidproof.io/)<br/>
 
 
-🔔 If you like, please follow our social channels.
-Twitter Official: https://twitter.com/SolidProof_io
-Twitter Insider: https://twitter.com/solidproof_news
-Telegram: https://t.me/solidproof
-Facebook: https://www.facebook.com/solidproof.io
+🔔 If you like, please follow our social channels.<br/>
+Twitter Official: https://twitter.com/SolidProof_io<br/>
+Twitter Insider: https://twitter.com/solidproof_news<br/>
+Telegram: https://t.me/solidproof<br/>
+Facebook: https://www.facebook.com/solidproof.io<br/>
 LinkedIn: https://www.linkedin.com/showcase/solidproof/about
