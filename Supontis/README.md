@@ -16,7 +16,7 @@ This project was first a report with several projects. These were subsequently d
 
 Projects was:<br/>
 [Dogealiens](https://github.com/solidproof/projects/tree/main/Dogeliens)<br/>
-[Rocketsize](https://github.com/solidproof/projects/tree/main/Rocketsize)<br/>
+[Rocketize](https://github.com/solidproof/projects/tree/main/Rocketize)<br/>
 
 📱 How you can contact<br/>
 [hello@solidproof.io](mailto:hello@solidproof.io)<br/>
