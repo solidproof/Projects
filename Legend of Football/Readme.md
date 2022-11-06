@@ -1,3 +1,8 @@
+# This KYC has been revoked
+
+We revoked the KYC for Legend of Football (LOF) on November 06, 2022. 
+
+
 # Blockchain Security by SolidProof
 
  We are specialized in auditing smart contracts and can find vulnerabilities in your blockchain project using manual and automated tests. With our informative report you give your community a good sense of security. 
