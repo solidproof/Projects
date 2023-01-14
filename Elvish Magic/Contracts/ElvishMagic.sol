@@ -13,29 +13,6 @@ interface IERC20 {
     event Transfer(address indexed from, address indexed to, uint value);
     event Approval(address indexed owner, address indexed spender, uint value);
 }
-library SafeMath {
-    function add(uint a, uint b) internal pure returns (uint) {
-        uint c = a + b;  
-        return c;
-    }
-  
-    function sub(uint a, uint b) internal pure returns (uint) {
-        uint c = a - b;
-        return c;
-    }
-    function mul(uint a, uint b) internal pure returns (uint) {
-        if (a == 0) {
-            return 0;
-        }
-        uint c = a * b;    
-        return c;
-    }
-   
-    function div(uint a, uint b) internal pure returns (uint) {
-        uint c = a / b;
-        return c;
-    }
-}
 
 contract Context {
     constructor () { }
@@ -97,47 +74,7 @@ contract ERC20Detailed {
     }
 }
 
-library Address {
-    function isContract(address account) internal view returns (bool) {
-        bytes32 codehash;
-        bytes32 accountHash = 0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470;
-        // solhint-disable-next-line no-inline-assembly
-        assembly { codehash := extcodehash(account) }
-        return (codehash != 0x0 && codehash != accountHash);
-    }
-}
 
-library SafeERC20 {
-    using SafeMath for uint;
-    using Address for address;
-
-    function safeTransfer(IERC20 token, address to, uint value) internal {
-        callOptionalReturn(token, abi.encodeWithSelector(token.transfer.selector, to, value));
-    }
-
-    function safeTransferFrom(IERC20 token, address from, address to, uint value) internal {
-        callOptionalReturn(token, abi.encodeWithSelector(token.transferFrom.selector, from, to, value));
-    }
-
-    function safeApprove(IERC20 token, address spender, uint value) internal {
-        require((value == 0) || (token.allowance(address(this), spender) == 0),
-            "SafeBEP20: approve from non-zero to non-zero allowance"
-        );
-        callOptionalReturn(token, abi.encodeWithSelector(token.approve.selector, spender, value));
-    }
-    function callOptionalReturn(IERC20 token, bytes memory data) private {
-        require(address(token).isContract(), "SafeBEP20: call to non-contract");
-
-        // solhint-disable-next-line avoid-low-level-calls
-        (bool success, bytes memory returndata) = address(token).call(data);
-        require(success, "SafeBEP20: low-level call failed");
-
-        if (returndata.length > 0) { // Return data is optional
-            // solhint-disable-next-line max-line-length
-            require(abi.decode(returndata, (bool)), "SafeBEP20: BEP20 operation did not succeed");
-        }
-    }
-}
 
 interface IUniswapV2Factory {
     event PairCreated(address indexed token0, address indexed token1, address pair, uint);
@@ -342,9 +279,6 @@ interface IUniswapV2Router02 is IUniswapV2Router01 {
 }
 
 contract ElvishMagic is Context, Ownable, IERC20, ERC20Detailed {
-  using SafeERC20 for IERC20;
-  using Address for address;
-  using SafeMath for uint256;
   
     IUniswapV2Router02 public immutable uniswapV2Router;
     address public uniswapV2Pair;
@@ -356,13 +290,12 @@ contract ElvishMagic is Context, Ownable, IERC20, ERC20Detailed {
     uint256 internal _totalSupply;
 
     uint256 public sellMarketingFee = 0;
-    uint256 public sellLiquidityFee = 3;
-    uint256 public sellTotalFee = sellLiquidityFee.add(sellMarketingFee);
+    uint256 public sellLiquidityFee = 300;
+    uint256 public sellTotalFee = sellLiquidityFee + sellMarketingFee;
 
-    uint256 public buyMarketingFee = 3;
+    uint256 public buyMarketingFee = 300;
     uint256 public buyLiquidityFee = 0;
-    uint256 public buyTotalFee = buyLiquidityFee.add(buyMarketingFee);
-
+    uint256 public buyTotalFee = buyLiquidityFee + buyMarketingFee;
     address payable public treasuryAddress;
     
     bool inSwapAndLiquify;
@@ -370,13 +303,8 @@ contract ElvishMagic is Context, Ownable, IERC20, ERC20Detailed {
 
     uint256 public numTokensSellToAddToLiquidity = 1000000 * 10**18; //0.1%
  
-    event MinTokensBeforeSwapUpdated(uint256 minTokensBeforeSwap);
     event SwapAndLiquifyEnabledUpdated(bool enabled);
-    event SwapAndLiquify(
-        uint256 tokensSwapped,
-        uint256 ethReceived,
-        uint256 tokensIntoLiqudity
-    );
+
 
     modifier lockTheSwap {
         inSwapAndLiquify = true;
@@ -390,7 +318,6 @@ contract ElvishMagic is Context, Ownable, IERC20, ERC20Detailed {
     
 	_balances[owner()] = _totalSupply;
 
-    //IUniswapV2Router02 _uniswapV2Router = IUniswapV2Router02(0x9Ac64Cc6e4415144C455BD8E4837Fea55603e5c3); //BSC_TESTNET
 	IUniswapV2Router02 _uniswapV2Router = IUniswapV2Router02(0x10ED43C718714eb63d5aA57B78B54704E256024E); //BSC_MAINNET
 
     uniswapV2Router = _uniswapV2Router;
@@ -412,6 +339,7 @@ contract ElvishMagic is Context, Ownable, IERC20, ERC20Detailed {
     function balanceOf(address account) public view override returns (uint) {
         return _balances[account];
     }
+
     function transfer(address recipient, uint amount) public override  returns (bool) {
         _transfer(_msgSender(), recipient, amount);
         return true;
@@ -425,30 +353,30 @@ contract ElvishMagic is Context, Ownable, IERC20, ERC20Detailed {
     }
     function transferFrom(address sender, address recipient, uint amount) public override returns (bool) {
         _transfer(sender, recipient, amount);
-        _approve(sender, _msgSender(), _allowances[sender][_msgSender()].sub(amount));
+        _approve(sender, _msgSender(), _allowances[sender][_msgSender()] -amount);
         return true;
     }
     function increaseAllowance(address spender, uint addedValue) public returns (bool) {
-        _approve(_msgSender(), spender, _allowances[_msgSender()][spender].add(addedValue));
+        _approve(_msgSender(), spender, _allowances[_msgSender()][spender] + addedValue);
         return true;
     }
     function decreaseAllowance(address spender, uint subtractedValue) public returns (bool) {
-        _approve(_msgSender(), spender, _allowances[_msgSender()][spender].sub(subtractedValue));
+        _approve(_msgSender(), spender, _allowances[_msgSender()][spender]- subtractedValue);
         return true;
     }
 
-    function setBuyFeePercent(uint256 updatedMarketingFee, uint256 updatedLiquidityFee) external onlyOwner {
+   function setBuyFeePercent(uint256 updatedMarketingFee, uint256 updatedLiquidityFee) external onlyOwner {
         buyMarketingFee = updatedMarketingFee;
         buyLiquidityFee = updatedLiquidityFee;
-        buyTotalFee = buyLiquidityFee.add(buyMarketingFee);
-        require(buyTotalFee <= 15, "Max. 15%");
+        buyTotalFee = buyLiquidityFee + buyMarketingFee;
+        require(buyTotalFee <= 1500, "Max. 15%");
     }
-    
+
     function setSellFeePercent(uint256 updatedMarketingFee, uint256 updatedLiquidityFee) external onlyOwner {
         sellMarketingFee = updatedMarketingFee;
         sellLiquidityFee = updatedLiquidityFee;
-        sellTotalFee = sellMarketingFee.add(sellLiquidityFee);
-        require(sellTotalFee <= 15, "Max. 15%");
+        sellTotalFee = sellMarketingFee + sellLiquidityFee;
+        require(sellTotalFee <= 1500, "Max. 15%");
     }
 
     function setTreasuryAddress(address payable wallet) external onlyOwner
@@ -504,30 +432,30 @@ contract ElvishMagic is Context, Ownable, IERC20, ERC20Detailed {
             uint256 taxAmount;
             if(sender == uniswapV2Pair)
             {
-                taxAmount = amount.mul(buyTotalFee).div(100);
+                taxAmount = amount *buyTotalFee / 100_00;
             }
             else if (recipient == uniswapV2Pair)
             {
-                taxAmount = amount.mul(sellTotalFee).div(100);
+                 taxAmount = amount * sellTotalFee/ 100_00;
             }
-            uint256 TotalSent = amount.sub(taxAmount);
-            _balances[sender] = _balances[sender].sub(amount);
-            _balances[recipient] = _balances[recipient].add(TotalSent);
-            _balances[address(this)] = _balances[address(this)].add(taxAmount);
+            uint256 TotalSent = amount - taxAmount;
+            _balances[sender] = _balances[sender] - amount;
+            _balances[recipient] = _balances[recipient] + TotalSent;
+            _balances[address(this)] = _balances[address(this)] + taxAmount;
             emit Transfer(sender, recipient, TotalSent);
             emit Transfer(sender, address(this), taxAmount);
         }
         else
         {
-            _balances[sender] = _balances[sender].sub(amount);
-            _balances[recipient] = _balances[recipient].add(amount);
+            _balances[sender] = _balances[sender] - amount;
+            _balances[recipient] = _balances[recipient] + amount;
             emit Transfer(sender, recipient, amount);
         }
     }
 
-    function swapAndLiquify(uint256 tokensToLiquify) private {
-        uint256 tokensToLP = tokensToLiquify.mul(sellLiquidityFee).div(sellTotalFee).div(2);
-        uint256 amountToSwap = tokensToLiquify.sub(tokensToLP);
+    function swapAndLiquify(uint256 tokensToLiquify) lockTheSwap private {
+        uint256 tokensToLP = tokensToLiquify * sellLiquidityFee / sellTotalFee / 2;
+        uint256 amountToSwap = tokensToLiquify - tokensToLP;
 
         address[] memory path = new address[](2);
         path[0] = address(this);
@@ -543,30 +471,16 @@ contract ElvishMagic is Context, Ownable, IERC20, ERC20Detailed {
         );
 
         uint256 ethBalance = address(this).balance;
-        uint256 ethFeeFactor = sellTotalFee.sub((sellLiquidityFee).div(2));
-        uint256 ethForLiquidity = ethBalance.mul(sellLiquidityFee).div(ethFeeFactor).div(2);
-        uint256 ethForMarketing = ethBalance.mul(sellMarketingFee).div(ethFeeFactor);
+        uint256 ethFeeFactor = sellTotalFee - ((sellLiquidityFee) / (2));
+        uint256 ethForLiquidity = ethBalance * (sellLiquidityFee) / (ethFeeFactor) / (2);
+        uint256 ethForMarketing = ethBalance * (sellMarketingFee) / (ethFeeFactor);
     
         addLiquidity(tokensToLP, ethForLiquidity);
 
         payable(treasuryAddress).transfer(ethForMarketing);
     }
 
-    function swapTokensForEth(uint256 tokenAmount) private {
-        address[] memory path = new address[](2);
-        path[0] = address(this);
-        path[1] = uniswapV2Router.WETH();
-
-        _approve(address(this), address(uniswapV2Router), tokenAmount);
-
-        uniswapV2Router.swapExactTokensForETHSupportingFeeOnTransferTokens(
-            tokenAmount,
-            0, 
-            path,
-            address(this),
-            block.timestamp
-        );
-    }
+    
 
      function addLiquidity(uint256 tokenAmount, uint256 ethAmount) private {
         _approve(address(this), address(uniswapV2Router), tokenAmount);
