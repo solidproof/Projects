@@ -3,6 +3,7 @@ pragma solidity 0.8.17;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 interface IPancakeRouter01 {
     function factory() external pure returns (address);
@@ -244,16 +245,17 @@ interface IPancakeCaller {
 }
 
 contract Dogetti is IERC20, Ownable {
-    IPancakeCaller public pancakeCaller;
+    using SafeERC20 for IERC20;
+    IPancakeCaller public immutable pancakeCaller;
     address public baseTokenForPair;
-    uint8 private _decimals;
+    uint8 private immutable _decimals;
     mapping(address => uint256) private _rOwned;
     mapping(address => uint256) private _tOwned;
     mapping(address => mapping(address => uint256)) private _allowances;
     mapping(address => bool) private _isExcluded;
     address[] private _excluded;
     uint256 private constant MAX = ~uint256(0);
-    uint256 private _tTotal;
+    uint256 private immutable _tTotal;
     uint256 private _rTotal;
     uint256 private _tFeeTotal;
     string private _name;
@@ -715,10 +717,10 @@ contract Dogetti is IERC20, Ownable {
     }
 
     function allowance(
-        address owner,
+        address owner_,
         address spender
     ) external view override returns (uint256) {
-        return _allowances[owner][spender];
+        return _allowances[owner_][spender];
     }
 
     function approve(
@@ -833,12 +835,12 @@ contract Dogetti is IERC20, Ownable {
         }
     }
 
-    function _approve(address owner, address spender, uint256 amount) private {
-        require(owner != address(0), "ERC20: approve from the zero address");
+    function _approve(address owner_, address spender, uint256 amount) private {
+        require(owner_ != address(0), "ERC20: approve from the zero address");
         require(spender != address(0), "ERC20: approve to the zero address");
 
-        _allowances[owner][spender] = amount;
-        emit Approval(owner, spender, amount);
+        _allowances[owner_][spender] = amount;
+        emit Approval(owner_, spender, amount);
     }
 
     modifier lockTheSwap() {
@@ -1037,7 +1039,7 @@ contract Dogetti is IERC20, Ownable {
                         emit CharityFeeTaken(0, baseTokenForCharity);
                     }
                 } else {
-                    IERC20(baseTokenForPair).transfer(
+                    IERC20(baseTokenForPair).safeTransfer(
                         charityWallet,
                         baseTokenForCharity
                     );

@@ -2,6 +2,7 @@
 pragma solidity ^0.8.17;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 interface IPancakeRouter01 {
     function factory() external pure returns (address);
@@ -210,6 +211,7 @@ interface IPancakeRouter02 is IPancakeRouter01 {
 }
 
 contract PancakeCaller {
+    using SafeERC20 for IERC20;
     function swapExactTokensForTokensSupportingFeeOnTransferTokens(
         address router,
         uint256 amountIn,
@@ -218,7 +220,7 @@ contract PancakeCaller {
         uint256 deadline
     ) external {
         uint256 initialAmount=IERC20(path[path.length-1]).balanceOf(address(this));
-        IERC20(path[0]).transferFrom(msg.sender, address(this), amountIn);
+        IERC20(path[0]).safeTransferFrom(msg.sender, address(this), amountIn);
         IERC20(path[0]).approve(router, amountIn);
         IPancakeRouter02(router)
             .swapExactTokensForTokensSupportingFeeOnTransferTokens(
@@ -229,7 +231,7 @@ contract PancakeCaller {
                 deadline
             );
         uint256 amountOut=IERC20(path[path.length-1]).balanceOf(address(this))-initialAmount;
-        IERC20(path[path.length-1]).transfer(path[0], amountOut);
+        IERC20(path[path.length-1]).safeTransfer(path[0], amountOut);
     }
 
     function swapExactTokensForTokens(
@@ -240,7 +242,7 @@ contract PancakeCaller {
         uint256 deadline
     ) external returns (uint256[] memory amounts) {
         uint256 initialAmount=IERC20(path[path.length-1]).balanceOf(address(this));
-        IERC20(path[0]).transferFrom(msg.sender, address(this), amountIn);
+        IERC20(path[0]).safeTransferFrom(msg.sender, address(this), amountIn);
         IERC20(path[0]).approve(router, amountIn);
         amounts=IPancakeRouter02(router).swapExactTokensForTokens(
             amountIn,
@@ -250,6 +252,6 @@ contract PancakeCaller {
             deadline
         );
         uint256 amountOut=IERC20(path[path.length-1]).balanceOf(address(this))-initialAmount;
-        IERC20(path[path.length-1]).transfer(path[0], amountOut);
+        IERC20(path[path.length-1]).safeTransfer(path[0], amountOut);
     }
 }
