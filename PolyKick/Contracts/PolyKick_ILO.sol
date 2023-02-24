@@ -172,11 +172,6 @@ using SafeMath for uint256;
         isWhitelisted[_allowed] = true;
         emit whiteList(_allowed, isWhitelisted[_allowed]);
     }
-    function removeWhiteList(address _usr) external onlyAdmin{
-        require(_usr != address(0x0), "Zero aadress!");
-        isWhitelisted[_usr] = false;
-        emit whiteList(_usr, isWhitelisted[_usr]);
-    }
     function extendILO(uint256 _duration) external onlyAdmin{
         fundsReturn = true;
         duration = _duration.add(block.timestamp);
