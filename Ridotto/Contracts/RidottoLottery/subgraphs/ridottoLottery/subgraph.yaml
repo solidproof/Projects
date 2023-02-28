@@ -1,0 +1,42 @@
+specVersion: 0.0.4
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: ridottoLottery
+    network: SUBGRAPH_NETWORK
+    source:
+      address: RIDOTTO_LOTTERY_ADDRESS
+      abi: ridottoLottery
+      startBlock: 8222736
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      entities:
+        - AdminTokenRecovery
+        - Initialized
+        - LotteryClose
+        - LotteryInjection
+        - LotteryNumberDrawn
+        - LotteryOpen
+        - NewRandomGenerator
+        - NewTreasuryAndInjectorAddresses
+        - OwnershipTransferred
+        - TicketsClaim
+        - TicketsPurchase
+      abis:
+        - name: ridottoLottery
+          file: ./abis/ridottoLottery.json
+      eventHandlers:
+        - event: LotteryOpen(indexed uint256,uint256,uint256,uint256,uint256,uint256)
+          handler: handleLotteryOpen
+        - event: LotteryClose(indexed uint256,uint256)
+          handler: handleLotteryClose
+        - event: LotteryNumberDrawn(indexed uint256,uint256,uint256)
+          handler: handleLotteryNumberDrawn
+        - event: TicketsPurchase(indexed address,indexed uint256,uint256,uint32[])
+          handler: handleTicketsPurchase
+        - event: TicketsClaim(indexed address,uint256,indexed uint256,uint256)
+          handler: handleTicketsClaim
+      file: ./src/ridottoLottery.ts

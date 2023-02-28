@@ -1,0 +1,59 @@
+{
+  "name": "@ridotto/ridotto-lottery",
+  "version": "1.0.0",
+  "description": "🎲 Ridotto's lottery contract",
+  "license": "Ridotto Core License",
+  "homepage": "https://ridotto.io",
+  "files": [
+    "/contracts/**/*.sol",
+    "/subgraph/ridottoLottery/abi/*.json"
+  ],
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "test:coverage": "hardhat coverage",
+    "deploy:hardhat": "hardhat run ./scripts/deploy.js",
+    "subgraph:ridottoLottery:prepare": "cd subgraphs/ridottoLottery && npm install",
+    "subgraph:ridottoLottery:setAddress": "cd subgraphs/ridottoLottery && sed -i \"s|RIDOTTO_LOTTERY_ADDRESS|\\\"$RIDOTTO_LOTTERY_ADDRESS\\\"|g\" subgraph.yaml",
+    "subgraph:ridottoLottery:setNetwork": "cd subgraphs/ridottoLottery && sed -i \"s|SUBGRAPH_NETWORK|\\\"$SUBGRAPH_NETWORK\\\"|g\" subgraph.yaml",
+    "subgraph:ridottoLottery:auth": "cd subgraphs/ridottoLottery && npm run auth:hosted",
+    "subgraph:ridottoLottery:codegen": "cd subgraphs/ridottoLottery && npm run codegen",
+    "subgraph:ridottoLottery:build": "cd subgraphs/ridottoLottery && npm run build",
+    "subgraph:ridottoLottery:deploy": "cd subgraphs/ridottoLottery && npm run deploy:hosted",
+    "project:clean": "find . -type d \\( -name \"node_modules\" -or -name \"build\" -or -name \"generated\" \\) -exec rm -rf {} +",
+    "generate-abi:export": "npx hardhat export-abi --no-compile",
+    "generate-abi:clean": "npx hardhat clear-abi"
+  },
+  "keywords": [
+    "ridotto",
+    "smart contract",
+    "gambling",
+    "lottery",
+    "protocol",
+    "global rng",
+    "chainlink"
+  ],
+  "devDependencies": {
+    "@nomiclabs/hardhat-ethers": "^2.0.4",
+    "@nomiclabs/hardhat-etherscan": "^3.0.3",
+    "@nomiclabs/hardhat-waffle": "^2.0.3",
+    "@openzeppelin/hardhat-defender": "^1.6.0",
+    "@openzeppelin/hardhat-upgrades": "^1.20.0",
+    "chai": "^4.3.4",
+    "ethereum-waffle": "^3.4.0",
+    "ethers": "^5.5.3",
+    "hardhat": "^2.8.3",
+    "hardhat-abi-exporter": "^2.10.1",
+    "hardhat-gas-reporter": "^1.0.8",
+    "prettier": "^2.6.2",
+    "prettier-plugin-solidity": "^1.0.0-beta.19",
+    "solidity-coverage": "^0.8.2"
+  },
+  "dependencies": {
+    "@chainlink/contracts": "^0.4.0",
+    "@openzeppelin/contracts": "^4.4.2",
+    "@openzeppelin/contracts-upgradeable": "^4.7.3",
+    "@ridotto-io/global-rng": "^1.0.0",
+    "bignumber.js": "^9.0.2"
+  }
+}
