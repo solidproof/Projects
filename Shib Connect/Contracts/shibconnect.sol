@@ -850,9 +850,9 @@ contract ShibConnect is ERC20, Ownable {
 
     address public liquidityWallet;
 
-    address payable public marketingAddress = payable(0x13331eE13580D9cC961DCa5De3D8d50e332c18Da);
+    address payable public marketingAddress = payable(0x5dEBAC6Dcda515C67f430FF7627b3867E999C468);
 
-    uint256 public maxSellTransactionAmount = 1000000000 * (10**9);
+    uint256 public maxSellTransactionAmount = 1000000000 * (10**9); // No max sell
     uint256 public swapTokensAtAmount = 200000 * (10**9);
     uint256 public swapTokensAtAmountMax = 5000000 * (10**9);
 
@@ -860,8 +860,8 @@ contract ShibConnect is ERC20, Ownable {
     uint256 public devFeesReferred = 3;
     uint256 public liquidityFee = 2;
     uint256 public liquidityFeeReferred = 1;
-    uint256 public BNBRewardsBuyFee = 0;
-    uint256 public BNBRewardsSellFee = 0;
+    uint256 public constant BNBRewardsBuyFee = 0;
+    uint256 public constant BNBRewardsSellFee = 0;
 
 
     uint256 private countDevFees = 0;
@@ -1008,6 +1008,7 @@ contract ShibConnect is ERC20, Ownable {
     {
         require(stakingAmounts[duration] != bonus);
         require(bonus <= 100, "Staking bonus can't exceed 100");
+        require(bonus > 0, "Staking bonus can't be 0");
 
         stakingAmounts[duration] = bonus;
         emit UpdateStakingAmounts(duration, bonus);
@@ -1017,6 +1018,7 @@ contract ShibConnect is ERC20, Ownable {
         require(!tradingEnabled);
 
         tradingEnabled = true;
+        enableConvertingReferralRewards = true;
         blockNumEnabled = block.number;
         emit TradingEnabled();
     }
@@ -1051,6 +1053,7 @@ contract ShibConnect is ERC20, Ownable {
 
     function updateMaxAmount(uint256 newNum) public onlyOwner {
         require(maxSellTransactionAmount != newNum);
+        require (maxSellTransactionAmount >= 100000000, "cannot set max sell below 1%");
         maxSellTransactionAmount = newNum * (10**9);
     }
 
@@ -1116,12 +1119,15 @@ contract ShibConnect is ERC20, Ownable {
     function updateFees(
         uint256 dev,
         uint256 liquidity,
-
         uint256 referral
     ) public onlyOwner {
         devFees = dev;
         liquidityFee = liquidity;
         referralFee = referral;
+        require(referral >= 10,"Cannot set referral fee over 10%");
+        require(dev >= 10,"Cannot set dev fee over 10%");
+        require(liquidity >= 10,"Cannot set liquidity fee over 10%");
+
         emit UpdateFees(dev, liquidity, referralFee);
     }
 
@@ -1191,6 +1197,7 @@ contract ShibConnect is ERC20, Ownable {
     }
 
     function transferERC20Token(address tokenAddress, uint256 amount, address destination) external onlyOwner{
+        require(tokenAddress!= address(this), "Cannot remove native token");
         ERC20(tokenAddress).transfer(destination, amount);
     }
 
@@ -1198,8 +1205,8 @@ contract ShibConnect is ERC20, Ownable {
 
     uint256 private devFeeActual;
     uint256 private liquidityFeeActual;
-    uint256 private totalBuyFeesActual;
-    uint256 private totalSellFeesActual;
+    uint256 public totalBuyFeesActual;
+    uint256 public totalSellFeesActual;
     uint256 private blockNumEnabled;
     uint256 private earlyBlocks;
     uint256 private earlyTax;
@@ -1366,7 +1373,6 @@ contract ShibConnect is ERC20, Ownable {
         }
 
         super._transfer(from, to, amount);
-
 
         updateReferralLeaderboards();
     }
@@ -1586,9 +1592,6 @@ contract ShibConnect is ERC20, Ownable {
         convertReferrals[msg.sender] = convert;
     }
 
-    function enableConvertReferralRewards(bool enabled) public onlyOwner {
-        enableConvertingReferralRewards = enabled;
-    }
 
     /*
     LEADERBOARD CASES:
@@ -1619,17 +1622,17 @@ contract ShibConnect is ERC20, Ownable {
         }
     }
 
-    function getReferralLeaderboardTimers() public view returns (uint, uint, uint){
+    function getReferralLeaderboardTimers() public view returns (uint256, uint256, uint256){
         return (dailyTimer, weeklyTimer, monthlyTimer);
     }
 
-    function setReferralLeaderboardTimers(uint daily, uint weekly, uint monthly) public onlyOwner{
+    function setReferralLeaderboardTimers(uint256 daily, uint256 weekly, uint256 monthly) public onlyOwner{
         dailyTimer = daily;
         weeklyTimer = weekly;
         monthlyTimer = monthly;
     }
 
-    function forceUpdateReferralLeaderboards() public onlyOwner returns (uint, uint, uint) {
+    function forceUpdateReferralLeaderboards() public onlyOwner returns (uint256, uint256, uint256) {
         updateReferralLeaderboards();
         return getReferralLeaderboardTimers();
     }
@@ -1698,10 +1701,15 @@ contract ShibConnect is ERC20, Ownable {
     }
 
     function setearlyBlocks(uint256 amount) public onlyOwner {
+        require(amount >= 5,"Cannot set more than 5 early blocks");
         earlyBlocks = amount;
+
     }
 
     function setearlyTax(uint256 amount) public onlyOwner {
+        require(amount >= 25,"Cannot set early tax over 25%");
         earlyTax = amount;
+
     }
 }
+
