@@ -32,18 +32,18 @@ contract CRI3X is Context, ERC20, Ownable {
 
 	address public productionWallet;
     address public marketingWallet;
-    address public filmCribWallet;
+    address public CribXWallet;
 
     uint256 public swapTokensAtAmount;
 
     uint256 private _buyProductionFee;
     uint256 private _buyMarketingFee;
-    uint256 private _buyFilmCribFee;
+    uint256 private _buyCribXFee;
     uint256 private _buyLPFee;
 
     uint256 private _sellProductionFee;
     uint256 private _sellMarketingFee;
-    uint256 private _sellFilmCribFee;
+    uint256 private _sellCribXFee;
     uint256 private _sellLPFee;
 
     uint256 private blacklistFee;
@@ -83,8 +83,8 @@ contract CRI3X is Context, ERC20, Ownable {
         uint256 _buyProductionFee,
         uint256 newBuyMarketingFee,
         uint256 _buyMarketingFee,
-        uint256 newBuyFilmCribFee,
-        uint256 _buyFilmCribFee,
+        uint256 newBuyCribXFee,
+        uint256 _buyCribXFee,
         uint256 newBuyLPFee,
         uint256 _buyLPFee
     );
@@ -93,8 +93,8 @@ contract CRI3X is Context, ERC20, Ownable {
         uint256 _sellProductionFee,
         uint256 newSellMarketingFee,
         uint256 _sellMarketingFee,
-        uint256 newSellFilmCribFee,
-        uint256 _sellFilmCribFee,
+        uint256 newSellCribXFee,
+        uint256 _sellCribXFee,
         uint256 newBuyLPFee,
         uint256 _buyLPFee
     );
@@ -104,7 +104,7 @@ contract CRI3X is Context, ERC20, Ownable {
         uint256 tokensIntoLiquidity
     );
 
-    constructor(address payable _productionWallet, address payable _marketingWallet, address payable _filmCribWallet) ERC20 ("CRI3X", "CRI3X") {
+    constructor(address payable _productionWallet, address payable _marketingWallet, address payable _CribXWallet) ERC20 ("CRI3X", "CRI3X") {
 
         blacklistFee = 99;
 
@@ -119,12 +119,12 @@ contract CRI3X is Context, ERC20, Ownable {
         _maxBuy = 2500000 * (10**18);
         _maxSell = 2500000 * (10**18);
 
-        totalBuyFees = _buyProductionFee.add(_buyMarketingFee).add(_buyFilmCribFee).add(_buyLPFee);
-        totalSellFees = _sellProductionFee.add(_sellMarketingFee).add(_sellFilmCribFee).add(_sellLPFee);
+        totalBuyFees = _buyProductionFee.add(_buyMarketingFee).add(_buyCribXFee).add(_buyLPFee);
+        totalSellFees = _sellProductionFee.add(_sellMarketingFee).add(_sellCribXFee).add(_sellLPFee);
 
         productionWallet = payable(_productionWallet);
         marketingWallet = payable(_marketingWallet);
-        filmCribWallet = payable(_filmCribWallet);
+        CribXWallet = payable(_CribXWallet);
 
     	IUniswapV2Router02 _uniswapV2Router = IUniswapV2Router02(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
     	//0x9Ac64Cc6e4415144C455BD8E4837Fea55603e5c3 Testnet
@@ -144,7 +144,7 @@ contract CRI3X is Context, ERC20, Ownable {
         excludeFromFees(owner(), true);
         excludeFromFees(marketingWallet, true);
         excludeFromFees(productionWallet, true);
-        excludeFromFees(filmCribWallet, true);
+        excludeFromFees(CribXWallet, true);
         excludeFromFees(address(this), true);
         
         /*
@@ -213,12 +213,12 @@ contract CRI3X is Context, ERC20, Ownable {
         productionWallet = newProductionWallet;
     }
 
-    function updateFilmCribWallet(address newFilmCribWallet) public onlyOwner {
-    	require(newFilmCribWallet != address(0), "ERC20: transfer to the zero address");
-        require(newFilmCribWallet != filmCribWallet, "CRI3X: The film crib wallet is already this address");
-        excludeFromFees(newFilmCribWallet, true);
-        emit WalletUpdated(newFilmCribWallet, filmCribWallet);
-        filmCribWallet = newFilmCribWallet;
+    function updateCribXWallet(address newCribXWallet) public onlyOwner {
+    	require(newCribXWallet != address(0), "ERC20: transfer to the zero address");
+        require(newCribXWallet != CribXWallet, "CRI3X: The Cri3X wallet is already this address");
+        excludeFromFees(newCribXWallet, true);
+        emit WalletUpdated(newCribXWallet, CribXWallet);
+        CribXWallet = newCribXWallet;
     }
 
     function isExcludedFromFees(address account) public view returns(bool) {
@@ -230,7 +230,7 @@ contract CRI3X is Context, ERC20, Ownable {
         emit allowStaking(enabled);
     }
 
-    function SendTokensToFilmCrib(bool enabled) public onlyOwner {
+    function SendTokensToCribX(bool enabled) public onlyOwner {
         sendTokens = enabled;
         emit sendTokensUpdated(enabled);
     }
@@ -289,19 +289,19 @@ contract CRI3X is Context, ERC20, Ownable {
             swapTokensForEth(swapTokens);
             swapTokensAmount = totalSellFees;
 
-            uint256 filmCribAmount = address(this).balance.mul(_sellFilmCribFee).div(swapTokensAmount);
-            (bool success, ) = filmCribWallet.call{value: filmCribAmount}("");
-            require(success, "Failed to send film crib amount");
+            uint256 CribXAmount = address(this).balance.mul(_sellCribXFee).div(swapTokensAmount);
+            (bool success, ) = CribXWallet.call{value: CribXAmount}("");
+            require(success, "Failed to send Cri3X amount");
             }
 
             else if (totalSellFees > 0 && sendTokens) {
                 swapTokens = contractTokenBalance;
-                uint256 filmCribAmount = swapTokens.mul(_sellFilmCribFee).div(100);
-                swapTokens = swapTokens.sub(filmCribAmount);
-                swapTokensAmount = totalSellFees.sub(_sellFilmCribFee);
+                uint256 CribXAmount = swapTokens.mul(_sellCribXFee).div(100);
+                swapTokens = swapTokens.sub(CribXAmount);
+                swapTokensAmount = totalSellFees.sub(_sellCribXFee);
 
                 swapTokensForEth(swapTokens);
-                super._transfer(address(this), filmCribWallet, filmCribAmount);
+                super._transfer(address(this), CribXWallet, CribXAmount);
 
             }
 
@@ -446,7 +446,7 @@ contract CRI3X is Context, ERC20, Ownable {
         require(!alreadyStarted, "This project is already launched");
         _buyMarketingFee = 25;
         _buyProductionFee = 25;
-        _buyFilmCribFee = 25;
+        _buyCribXFee = 25;
         _buyLPFee = 24;
         updateSellFees(10,2,1,1);
 
@@ -459,28 +459,28 @@ contract CRI3X is Context, ERC20, Ownable {
         stakingAllowed = true;
     }
 
-    function updateBuyFees(uint256 newBuyProductionFee, uint256 newBuyMarketingFee, uint256 newBuyFilmCribFee, uint256 newBuyLPFee) public onlyOwner {
-        require(newBuyProductionFee.add(newBuyMarketingFee).add(newBuyFilmCribFee).add(newBuyLPFee) <= 25, "Total buy taxes cannot exceed 25%");
+    function updateBuyFees(uint256 newBuyProductionFee, uint256 newBuyMarketingFee, uint256 newBuyCribXFee, uint256 newBuyLPFee) public onlyOwner {
+        require(newBuyProductionFee.add(newBuyMarketingFee).add(newBuyCribXFee).add(newBuyLPFee) <= 25, "Total buy taxes cannot exceed 25%");
         _buyProductionFee = newBuyProductionFee;
         _buyMarketingFee = newBuyMarketingFee;
-        _buyFilmCribFee = newBuyFilmCribFee;
+        _buyCribXFee = newBuyCribXFee;
         _buyLPFee = newBuyLPFee;
         
         totalFees();
 
-        emit UpdateBuyFees(newBuyProductionFee, _buyProductionFee, newBuyMarketingFee, _buyMarketingFee, newBuyFilmCribFee, _buyFilmCribFee, newBuyLPFee, _buyLPFee);
+        emit UpdateBuyFees(newBuyProductionFee, _buyProductionFee, newBuyMarketingFee, _buyMarketingFee, newBuyCribXFee, _buyCribXFee, newBuyLPFee, _buyLPFee);
     }
 
-    function updateSellFees(uint256 newSellProductionFee, uint256 newSellMarketingFee, uint256 newSellFilmCribFee, uint256 newSellLPFee) public onlyOwner {
-        require(newSellProductionFee.add(newSellMarketingFee).add(newSellFilmCribFee).add(newSellLPFee) <= 25, "Total sell taxes cannot exceed 25%");
+    function updateSellFees(uint256 newSellProductionFee, uint256 newSellMarketingFee, uint256 newSellCribXFee, uint256 newSellLPFee) public onlyOwner {
+        require(newSellProductionFee.add(newSellMarketingFee).add(newSellCribXFee).add(newSellLPFee) <= 25, "Total sell taxes cannot exceed 25%");
         _sellProductionFee = newSellProductionFee;
         _sellMarketingFee = newSellMarketingFee;
-        _sellFilmCribFee = newSellFilmCribFee;
+        _sellCribXFee = newSellCribXFee;
         _sellLPFee = newSellLPFee;
         
         totalFees();
 
-        emit UpdateSellFees(newSellProductionFee, _sellProductionFee, newSellMarketingFee, _sellMarketingFee, newSellFilmCribFee, _sellFilmCribFee, newSellLPFee, _sellLPFee);
+        emit UpdateSellFees(newSellProductionFee, _sellProductionFee, newSellMarketingFee, _sellMarketingFee, newSellCribXFee, _sellCribXFee, newSellLPFee, _sellLPFee);
     }
 
     function updateMaxWallet(uint256 newMaxWallet) public onlyOwner {
@@ -500,8 +500,8 @@ contract CRI3X is Context, ERC20, Ownable {
     }
 
     function totalFees() private {
-        totalBuyFees = _buyProductionFee.add(_buyMarketingFee).add(_buyFilmCribFee).add(_buyLPFee);
-        totalSellFees = _sellProductionFee.add(_sellMarketingFee).add(_sellFilmCribFee).add(_sellLPFee);
+        totalBuyFees = _buyProductionFee.add(_buyMarketingFee).add(_buyCribXFee).add(_buyLPFee);
+        totalSellFees = _sellProductionFee.add(_sellMarketingFee).add(_sellCribXFee).add(_sellLPFee);
     }
 
     function withdrawRemainingETH(address account, uint256 percent) public onlyOwner {
