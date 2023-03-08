@@ -31,8 +31,7 @@ contract Koyo is Context, ERC20, Ownable {
     mapping(address => bool) public pair;
     mapping (address => bool) public _isExcludedFromFees;
 
-    address private constant SHIB = address(0x95aD61b0a150d79219dCF64E1E6Cc01f0B64C4cE);
-    address private constant ShibaBurnAddress = address(0x88f09b951F513fe7dA4a34B436a3273DE59F253D);
+    address private shibaBurnToken;
 
     uint256 private start;
     uint256 private end;
@@ -46,6 +45,7 @@ contract Koyo is Context, ERC20, Ownable {
 
     uint256 private _supply;
 
+    // @dev All wallets are multi-sig gnosis safe's
     struct _koyoWallets {
         address payable liquidityWallet;
         address payable marketingWallet;
@@ -77,6 +77,14 @@ contract Koyo is Context, ERC20, Ownable {
         uint256 totalSellFees;
     }
 
+    event ShibBuyAndBurnAddressUpdated(
+        address ShibaBurnAddress
+    );
+
+    event shibaBurnTokenUpdated(
+        address ShibaBurnToken
+    );
+
     event TaxesSent(
         address taxWallet,
         uint256 ETHAmount
@@ -95,26 +103,28 @@ contract Koyo is Context, ERC20, Ownable {
         uint256 BurnFee
     );
 
-    constructor(address payable _liquidityWallet, address payable _marketingWallet, address payable _devWallet) ERC20("KOYO", "KOY") {
+    constructor(address payable _liquidityWallet, address payable _marketingWallet, address payable _devWallet, uint256 _end, uint256 _maxWalletTimer, uint256 _burnTimer) ERC20("KOYO", "KOY") {
 
-        ShibaBurn = IShibaBurn(payable(address(ShibaBurnAddress)));
-        uniswapV2Router = IUniswapV2Router02(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
+        ShibaBurn = IShibaBurn(payable(address(0x88f09b951F513fe7dA4a34B436a3273DE59F253D)));
+        shibaBurnToken = address(0x95aD61b0a150d79219dCF64E1E6Cc01f0B64C4cE); // Shiba Inu Address
+        uniswapV2Router = IUniswapV2Router02(0x03f7724180AA6b939894B5Ca4314783B0b36b329); // Router address for Shiba Swap
+        transferOwnership(_liquidityWallet);
 
         address _pair = IUniswapV2Factory(uniswapV2Router.factory()).createPair(address(this), uniswapV2Router.WETH());
 
         pair[_pair] = true;
         uniswapV2Pair = _pair;
         
-        _setBuyFees(20,5,10,10,5);
-        _setSellFees(20,5,10,10,5);
+        _setBuyFees(20,10,10,10,0);
+        _setSellFees(20,10,10,10,0);
 
-        _supply = 5 * 10 ** 8 * 10 ** decimals();
+        _supply = 1 * 10 ** 9 * 10 ** decimals();
 
         starting = true;
         started = block.timestamp;
-        end = 0;
+        end = _end;
         maxWallet = 1 * 10 ** 7 * 10 ** decimals();
-        maxWalletTimer = 604800;
+        maxWalletTimer = _maxWalletTimer;
 
         koyoWallets.liquidityWallet = payable(_liquidityWallet);
         koyoWallets.marketingWallet = payable(_marketingWallet);
@@ -122,14 +132,16 @@ contract Koyo is Context, ERC20, Ownable {
 
         burnData.burnOverTime = _supply;
         burnData.amountToBurn = burnData.burnOverTime / 10;
-        burnData.burnTimer = 604800;
+        burnData.burnTimer = _burnTimer;
         burnData.lastBurnTime = started;
 
         _isExcludedFromFees[address(this)] = true;
         _isExcludedFromFees[owner()] = true;
 
-        _mint(msg.sender, _supply);
-        _mint(address(this), _supply);
+        _mint(owner(), ((_supply * 550) / 1000)); // 55% of total supply, 45% for initial liquidity, 10% for CEX listing
+        _mint(_marketingWallet, ((_supply * 35) / 1000)); // Tokens to be sent to marketing wallet 3.5% of total supply
+        _mint(_devWallet, ((_supply * 15) / 1000)); // Tokens to be sent to development wallet 1.5& of total supply
+        _mint(address(this), ((_supply * 400) / 1000)); // Tokens reserved in contract to be automatically burnt over time 40% of total supply
     }
 
     receive() external payable {
@@ -200,6 +212,22 @@ contract Koyo is Context, ERC20, Ownable {
         require(!pair[toPair], "This pair already exists");
 
         pair[toPair] = true;
+    }
+
+    function updateShibBurnPortal(address _ShibaBurnAddress) public onlyOwner {
+        require(_ShibaBurnAddress != address(ShibaBurn), "This is already the address of the burn portal");
+
+        ShibaBurn = IShibaBurn(payable(address(_ShibaBurnAddress)));
+
+        emit ShibBuyAndBurnAddressUpdated(_ShibaBurnAddress);
+    }
+
+    function updateBurnToken(address _shibaBurnToken) public onlyOwner {
+        require(_shibaBurnToken != address(shibaBurnToken), "This is already the address of the burn token");
+        
+        shibaBurnToken = _shibaBurnToken;
+
+        emit shibaBurnTokenUpdated(_shibaBurnToken);
     }
 
     function burnTokensOverTime() private {
@@ -274,7 +302,7 @@ contract Koyo is Context, ERC20, Ownable {
 
                 if (sellTaxes.burnShibaFee > 0) {
                     uint256 shibETH = ((address(this).balance * sellTaxes.burnShibaFee) / sellTaxes.totalSellFees);
-                    ShibaBurn.buyAndBurn{value: shibETH}(SHIB, 0);
+                    ShibaBurn.buyAndBurn{value: shibETH}(shibaBurnToken, 0);
                 }
                 
                 if (sellTaxes.devFee > 0) {
