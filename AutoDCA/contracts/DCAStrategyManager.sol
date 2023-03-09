@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 // © Copyright AutoDCA. All Rights Reserved
 
-pragma solidity ^0.8.9;
+pragma solidity 0.8.9;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
@@ -23,6 +23,7 @@ contract DCAStrategyManager is Ownable, AccessControl {
     uint256 public participateFee;
     ISwapRouter public uniswapV3Router; // 0xE592427A0AEce92De3Edee1F18E0157C05861564
 
+    error InvalidAddress();
     error StrategyAlreadyRegistered();
     error MaxParticipantsInStrategy();
     error InvalidStrategyId();
@@ -102,6 +103,9 @@ contract DCAStrategyManager is Ownable, AccessControl {
     }
 
     function setFeeCollector(address feeCollector_) public onlyOwner {
+        if (feeCollector_ == address(0)) {
+            revert InvalidAddress();
+        }
         feeCollector = feeCollector_;
     }
 
@@ -120,6 +124,18 @@ contract DCAStrategyManager is Ownable, AccessControl {
         uint256 maxParticipants,
         uint256 minWeeklyAmount
     ) public onlyOwner {
+        if (fromAsset == address(0)) {
+            revert InvalidAddress();
+        }
+        if (toAsset == address(0)) {
+            revert InvalidAddress();
+        }
+        if (accessManager == address(0)) {
+            revert InvalidAddress();
+        }
+        if (feeManager == address(0)) {
+            revert InvalidAddress();
+        }
         if (strategy[id].toAsset != address(0)) {
             revert StrategyAlreadyRegistered();
         }
@@ -172,6 +188,13 @@ contract DCAStrategyManager is Ownable, AccessControl {
     ) public onlyOwner strategyExists(id) {
         if (strategyFee > MAX_STRATEGY_FEE) {
             revert MaxStrategyFeeExceeded();
+        }
+        if (accessManager == address(0)) {
+            revert InvalidAddress();
+        }
+
+        if (feeManager == address(0)) {
+            revert InvalidAddress();
         }
         DCATypes.StrategyData storage strategyData = strategy[id];
         strategyData.strategyFee = strategyFee;
@@ -482,7 +505,7 @@ contract DCAStrategyManager is Ownable, AccessControl {
                     strategyData.executionData.totalCollectedFee
                 );
             }
-            uint256 received;
+            uint256 received = 0;
             if (strategyData.executionData.totalCollectedToExchange > 0) {
                 IERC20(strategyData.fromAsset).approve(
                     address(uniswapV3Router),
