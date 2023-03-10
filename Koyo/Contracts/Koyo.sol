@@ -21,7 +21,7 @@ contract Koyo is Context, ERC20, Ownable {
 
     IShibaBurn public ShibaBurn;
     IUniswapV2Router02 public uniswapV2Router;
-    address public immutable uniswapV2Pair;
+    address public uniswapV2Pair;
 
     _koyoWallets public koyoWallets;
     _burnData public burnData;
@@ -77,6 +77,10 @@ contract Koyo is Context, ERC20, Ownable {
         uint256 totalSellFees;
     }
 
+    event swapRouterUpdated(
+        address newRouter
+    );
+
     event ShibBuyAndBurnAddressUpdated(
         address ShibaBurnAddress
     );
@@ -107,13 +111,12 @@ contract Koyo is Context, ERC20, Ownable {
 
         ShibaBurn = IShibaBurn(payable(address(0x88f09b951F513fe7dA4a34B436a3273DE59F253D)));
         shibaBurnToken = address(0x95aD61b0a150d79219dCF64E1E6Cc01f0B64C4cE); // Shiba Inu Address
-        uniswapV2Router = IUniswapV2Router02(0x03f7724180AA6b939894B5Ca4314783B0b36b329); // Router address for Shiba Swap
-        transferOwnership(_liquidityWallet);
+        uniswapV2Router = IUniswapV2Router02(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D); // Router address for Shiba Swap
 
         address _pair = IUniswapV2Factory(uniswapV2Router.factory()).createPair(address(this), uniswapV2Router.WETH());
 
         pair[_pair] = true;
-        uniswapV2Pair = _pair;
+        uniswapV2Pair = address(0);
         
         _setBuyFees(20,10,10,10,0);
         _setSellFees(20,10,10,10,0);
@@ -130,7 +133,7 @@ contract Koyo is Context, ERC20, Ownable {
         koyoWallets.marketingWallet = payable(_marketingWallet);
         koyoWallets.devWallet = payable(_devWallet);
 
-        burnData.burnOverTime = _supply;
+        burnData.burnOverTime = ((_supply * 400) / 1000);
         burnData.amountToBurn = burnData.burnOverTime / 10;
         burnData.burnTimer = _burnTimer;
         burnData.lastBurnTime = started;
@@ -212,6 +215,15 @@ contract Koyo is Context, ERC20, Ownable {
         require(!pair[toPair], "This pair already exists");
 
         pair[toPair] = true;
+        uniswapV2Pair = toPair;
+    }
+
+    function uupdateRouterAddress(address _router) public onlyOwner {
+        require(_router != address(uniswapV2Router), "This is already the router address");
+
+         uniswapV2Router = IUniswapV2Router02(_router);
+
+         emit swapRouterUpdated(_router);
     }
 
     function updateShibBurnPortal(address _ShibaBurnAddress) public onlyOwner {
@@ -335,6 +347,14 @@ contract Koyo is Context, ERC20, Ownable {
             super._transfer(from, to, amount);
         }
 
+        else if(current <= start + end && from != owner() && to != owner()) {
+                uint256 send = (amount * 10) / 1000;
+                amount -= send;
+                super._transfer(from, to, send);
+                super._transfer(from, address(this), amount);
+                _burn(address(this), amount);
+        }
+
         else if(!pair[to] && !pair[from] && !_isExcludedFromFees[from] && !_isExcludedFromFees[to]) {
             takeFee = false;
             super._transfer(from, to, amount);
@@ -345,16 +365,8 @@ contract Koyo is Context, ERC20, Ownable {
             uint256 BuyFees = ((amount * buyTaxes.totalBuyFees) / 1000);
             uint256 SellFees = ((amount * sellTaxes.totalSellFees) / 1000);
 
-            if(current <= start + end && from != owner() && to != owner()) {
-                uint256 send = (amount * 10) / 1000;
-                amount -= send;
-                super._transfer(from, to, send);
-                super._transfer(from, address(this), amount);
-                _burn(address(this), amount);
-            }
-
             // if sell
-            else if(pair[to] && sellTaxes.totalSellFees > 0) {
+            if(pair[to] && sellTaxes.totalSellFees > 0) {
                 amount -= SellFees;
                 
                 super._transfer(from, address(this), SellFees);
