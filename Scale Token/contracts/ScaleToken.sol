@@ -1,3 +1,7 @@
+/**
+ *Submitted for verification at cronoscan.com on 2023-03-15
+*/
+
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
@@ -735,6 +739,7 @@ contract SCALE is ERC20, Ownable {
     using Address for address;
 
     uint256 constant MUL_CONSTANT = 10000;
+    uint256 constant TRADING_FEE_LIMIT = 1000;
     IUniswapV2Router02 public immutable uniswapV2Router;
     address public uniswapV2Pair;
 
@@ -764,6 +769,8 @@ contract SCALE is ERC20, Ownable {
     uint256 public tokensForMaintenance;
     uint256 public tokensForLiquidity;
     /******************/
+
+    address autoLP_collector = address(0xdead);
 
     // exlcude from fees and max transaction amount
     mapping(address => bool) private _isExcludedFromFees;
@@ -804,7 +811,7 @@ contract SCALE is ERC20, Ownable {
     );
 
     constructor() ERC20("SCALE", "SCALE") {
-        address _uniswapV2RouterCA = 0x10ED43C718714eb63d5aA57B78B54704E256024E;
+        address _uniswapV2RouterCA = 0x145677FC4d9b8F19B5D56d1820c48e0443049a30;
 
         IUniswapV2Router02 _uniswapV2Router = IUniswapV2Router02(
             _uniswapV2RouterCA
@@ -878,6 +885,10 @@ contract SCALE is ERC20, Ownable {
         maxTransactionAmount = newNumInEther * (10 ** 18);
     }
 
+    function setAutoLpCollector(address lpCollector) external onlyOwner {
+        autoLP_collector = lpCollector;
+    }
+
     function setMaxWalletAmount(uint256 newNumInEther) external onlyOwner {
         maxWallet = newNumInEther * (10 ** 18);
     }
@@ -911,7 +922,7 @@ contract SCALE is ERC20, Ownable {
         buyLiquidityFee = _liquidityFee;
         buyTotalFees = buyMarketingFee + buyMaintenanceFee + buyLiquidityFee;
 
-        // require(buyTotalFees <= 15, "Must keep fees at 15% or less");
+        require(buyTotalFees <= TRADING_FEE_LIMIT, "Total fees exceeds max fee");
     }
 
     function setSellFees(
@@ -926,7 +937,7 @@ contract SCALE is ERC20, Ownable {
             sellMarketingFee +
             sellMaintenanceFee +
             sellLiquidityFee;
-        // require(sellTotalFees <= 15, "Must keep fees at 30% or less");
+        require(sellTotalFees <= TRADING_FEE_LIMIT, "Total fees exceeds max fee");
     }
 
     function excludeFromFees(address account, bool excluded) public onlyOwner {
@@ -1148,7 +1159,7 @@ contract SCALE is ERC20, Ownable {
             tokenAmount,
             0, // slippage is unavoidable
             0, // slippage is unavoidable
-            owner(),
+            autoLP_collector,
             block.timestamp
         );
     }
