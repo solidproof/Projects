@@ -24,9 +24,7 @@ interface IStaking {
 
 interface ILiquidityProvider {
    function provideLiquidity(uint256 USDCAmount, uint256 TGCAmount) external;
-   function transferReward(address sender) external;
    function transferUSDT(address marketing, uint256 amount) external;
-   function transferTGC(address marketing) external;
 }
 
 contract LiquidityProvider is ILiquidityProvider {
@@ -61,16 +59,8 @@ contract LiquidityProvider is ILiquidityProvider {
 	   );	
 	}
 	
-	function transferReward(address sender) external override onlyToken {
-	   IERC20(USDC).transfer(address(sender), IERC20(USDC).balanceOf(address(this)));
-	}
-	
 	function transferUSDT(address marketing, uint256 amount) external override onlyToken {
 	   IERC20(USDC).transfer(address(marketing), amount);
-	}
-	
-	function transferTGC(address marketing) external override onlyToken {
-	   IERC20(TGCToken).transfer(address(marketing), IERC20(TGCToken).balanceOf(address(this)));
 	}
 }
 
@@ -123,24 +113,16 @@ contract TGC is Ownable, ERC20 {
 	LiquidityProvider public LPProvider;
 	
 	bool private swapping;
-    bool public swapAndLiquifyEnabled = true;
 	
-    uint256 public swapTokensAtAmount = 500 * (10**18);
+    uint256 public swapTokensAtAmount = 1250000  * (10**18);
 	uint256 public maxBuyPerWallet = 20000000 * (10**18);
 	
 	event LockToken(uint256 amount, address user);
 	event UnLockToken(uint256 amount, address user);
-	event MigrateTokens(address token, address receiver, uint256 amount);
-	event TransferTokens(address receiver, uint256 amount);
-	event TransferETH(address recipient, uint256 amount);
-	event MaxBuyPerWalletUpdated(uint256 amount);
 	event SwapTokensAmountUpdated(uint256 amount);
-	event SwapAndLiquifyStatusUpdated(bool status);
-	event WalletExcludeFromBuyLimit(address account);
-    event WalletIncludeInBuyLimit(address account);
 	
-    constructor () ERC20("The Grays Currency", "TGC") {
-        _rOwned[_msgSender()] = _rTotal;
+    constructor (address owner) ERC20("The Grays Currency", "TGC") {
+        _rOwned[owner] = _rTotal;
         
         uniswapV2Router = IUniswapV2Router(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
         uniswapV2Pair = IUniswapV2Factory(uniswapV2Router.factory()).createPair(address(this), address(USDC));
@@ -150,13 +132,13 @@ contract TGC is Ownable, ERC20 {
 		
 		_setAutomatedMarketMakerPair(uniswapV2Pair, true);
 		
-        _isExcludedFromFee[owner()] = true;
+        _isExcludedFromFee[owner] = true;
         _isExcludedFromFee[address(this)] = true;
 		_isExcludedFromFee[address(LPProviderAddress)] = true;
 		
 		_isExcludedFromMaxBuyPerWallet[address(uniswapV2Pair)] = true;
 		_isExcludedFromMaxBuyPerWallet[address(this)] = true;
-		_isExcludedFromMaxBuyPerWallet[owner()] = true;
+		_isExcludedFromMaxBuyPerWallet[owner] = true;
 		_isExcludedFromMaxBuyPerWallet[address(LPProviderAddress)] = true;
 		
 		liquidityFee.push(50);
@@ -194,11 +176,11 @@ contract TGC is Ownable, ERC20 {
 		_excludeFromReward(address(this));
 		_excludeFromReward(address(LPProviderAddress));
 		
-		_isHolder[_msgSender()] = true;
+		_isHolder[owner] = true;
 		holders += 1;
 		
-		totalReceived[_msgSender()] +=_tTotal;
-        emit Transfer(address(0), _msgSender(), _tTotal);
+		totalReceived[owner] +=_tTotal;
+        emit Transfer(address(0), owner, _tTotal);
     }
 	
 	receive() external payable {}
@@ -218,11 +200,6 @@ contract TGC is Ownable, ERC20 {
         return rAmount.div(currentRate);
     }
 	
-    function excludeFromReward(address account) public onlyOwner() {
-        require(!_isExcludedFromReward[account], "Account is already excluded");
-		_excludeFromReward(account);
-    }
-	
 	function _excludeFromReward(address account) internal {
         if(_rOwned[account] > 0) {
             _tOwned[account] = tokenFromReflection(_rOwned[account]);
@@ -230,53 +207,6 @@ contract TGC is Ownable, ERC20 {
         _isExcludedFromReward[account] = true;
         _excluded.push(account);
     }
-	
-    function includeInReward(address account) external onlyOwner() {
-        require(_isExcludedFromReward[account], "Account is already included");
-        for (uint256 i = 0; i < _excluded.length; i++) {
-            if (_excluded[i] == account) {
-                _excluded[i] = _excluded[_excluded.length - 1];
-                _tOwned[account] = 0;
-                _isExcludedFromReward[account] = false;
-                _excluded.pop();
-                break;
-            }
-        }
-    }
-	
-	function setSwapAndLiquifyEnabled(bool _enabled) public onlyOwner {
-        swapAndLiquifyEnabled = _enabled;
-		emit SwapAndLiquifyStatusUpdated(_enabled);
-    }
-	
-	function setAutomatedMarketMakerPair(address pair, bool value) public onlyOwner {
-        require(pair != uniswapV2Pair, "The pair cannot be removed from automatedMarketMakerPairs");
-        _setAutomatedMarketMakerPair(pair, value);
-    }
-
-    function excludeFromFee(address account) public onlyOwner {
-	   require(!_isExcludedFromFee[account], "Account is already the value of 'true'");
-	   _isExcludedFromFee[account] = true;
-	}
-	
-	function includeInFee(address account) public onlyOwner {
-		require(_isExcludedFromFee[account], "Account is already the value of 'false'");
-		_isExcludedFromFee[account] = false;
-	}
-
-    function excludeFromMaxBuyPerWallet(address account) public onlyOwner {
-		require(!_isExcludedFromMaxBuyPerWallet[account], "Account is already the value of 'true'");
-		_isExcludedFromMaxBuyPerWallet[account] = true;
-		
-		emit WalletExcludeFromBuyLimit(account);
-	}
-
-    function includeInBuyPerWallet(address account) public onlyOwner {
-		require(_isExcludedFromMaxBuyPerWallet[account], "Account is already the value of 'false'");
-		_isExcludedFromMaxBuyPerWallet[account] = false;
-		
-		emit WalletIncludeInBuyLimit(account);
-	}	
 	
     function _setAutomatedMarketMakerPair(address pair, bool value) private {
         require(_automatedMarketMakerPairs[pair] != value, "Automated market maker pair is already set to that value");
@@ -292,20 +222,6 @@ contract TGC is Ownable, ERC20 {
 	   _excludeFromReward(address(stakingContract));
 	   _isExcludedFromFee[address(stakingContract)] = true;
     }
-	
-	function setSwapTokensAtAmount(uint256 amount) external onlyOwner {
-  	     require(amount <= totalSupply(), "Amount cannot be over the total supply.");
-		 swapTokensAtAmount = amount;
-		 
-		 emit SwapTokensAmountUpdated(amount);
-  	}
-	
-	function setMaxBuyPerWallet(uint256 amount) public onlyOwner {
-		require(amount <= totalSupply(), "Amount cannot be over the total supply.");
-		maxBuyPerWallet = amount;
-		
-		emit MaxBuyPerWalletUpdated(amount);
-	}
 	
 	function lockToken(uint256 amount, address user) external {
 	   require(msg.sender == address(stakingContract), "sender not allowed");
@@ -513,14 +429,14 @@ contract TGC is Ownable, ERC20 {
 		
 		if(!_isExcludedFromMaxBuyPerWallet[to] && _automatedMarketMakerPairs[from])
 		{
-           uint256 balanceRecepient = balanceOf(to);
-           require(balanceRecepient + amount <= maxBuyPerWallet, "Exceeds maximum buy per wallet limit");
+            uint256 balanceRecepient = balanceOf(to);
+            require(balanceRecepient + amount <= maxBuyPerWallet, "Exceeds maximum buy per wallet limit");
         }
 		
         uint256 contractTokenBalance = balanceOf(address(this));
 		bool canSwap = contractTokenBalance >= swapTokensAtAmount;
 		
-        if (canSwap && !swapping && _automatedMarketMakerPairs[to] && swapAndLiquifyEnabled) 
+        if (canSwap && !swapping && _automatedMarketMakerPairs[to]) 
 		{
 		    uint256 tokenToLiqudity = liquidityFeeTotal.div(2);
 			uint256 tokenToMarketing = marketingFeeTotal;
@@ -775,38 +691,11 @@ contract TGC is Ownable, ERC20 {
         emit Transfer(sender, recipient, tTransferAmount);
     }
 	
-	function migrateTokens(address token, address receiver, uint256 amount) external {
-       require(token != address(0), "Zero address");
-	   require(receiver != address(0), "Zero address");
-	   require(msg.sender == address(marketingWallet), "Incorrect request");
-	   
-	   if(address(token) == address(this))
-	   {
-	       require(IERC20(address(this)).balanceOf(address(this)).sub(liquidityFeeTotal).sub(marketingFeeTotal) >= amount, "Insufficient balance on contract");
-	   }
-	   else
-	   {
-	       require(IERC20(token).balanceOf(address(this)) >= amount, "Insufficient balance on contract");
-	   }
-	   IERC20(token).transfer(address(receiver), amount);
-       emit MigrateTokens(token, receiver, amount);
-    }
-	
-	function migrateETH(address payable recipient) external {
-	   require(recipient != address(0), "Zero address");
-	   require(msg.sender == address(marketingWallet), "Incorrect request");
-	   
-	   emit TransferETH(recipient, address(this).balance);
-       recipient.transfer(address(this).balance);
-    }
-	
-	function transferLPReward() external {
-       require(msg.sender == address(marketingWallet), "Incorrect request");
-	   LPProvider.transferReward(msg.sender);
-    }
-	
-	function transferLPTGC() external {
-       require(msg.sender == address(marketingWallet), "Incorrect request");
-	   LPProvider.transferTGC(msg.sender);
-    }
+	function setSwapTokensAtAmount(uint256 amount) external {
+	    require(msg.sender == address(marketingWallet), "Incorrect request");
+  	    require(amount <= totalSupply(), "Amount cannot be over the total supply.");
+		swapTokensAtAmount = amount;
+		
+		emit SwapTokensAmountUpdated(amount);
+  	}
 }
