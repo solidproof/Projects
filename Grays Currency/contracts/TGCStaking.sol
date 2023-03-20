@@ -69,7 +69,7 @@ contract TGCStaking {
 	   topStakerNumber = 100;
 	   minStakingToken = 1 * 10**18;
 	   precisionFactor = 10**18;
-	   TGC = address(0x5B84097bA70EAF1E664F34a409973cA7612524BB);
+	   TGC = address(0x1a3855143c423b4fEB5FF8ce23b5aF968eB15Fb7);
     }
 	
 	function deposit(uint256 amount) external {
