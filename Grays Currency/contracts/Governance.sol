@@ -56,7 +56,7 @@ contract Governance {
     constructor () {
 	   votingPeriod = 7 * 86400;
 	   USDC = address(0x07865c6E87B9F70255377e024ace6630C1Eaa37F);
-	   staking = address(0x84A64678173111C7306C7E8D3E6275134E87C2Db);
+	   staking = address(0x3d049a9923480E94196dE31031980747D8873D2a);
 	   marketing = address(0x38de9e7f51A14DACc46F1E68C620C6f00E4966F4);
     }
 	
