@@ -1,4 +1,4 @@
-pragma solidity ^0.8.0;   
+pragma solidity 0.8.10;   
 
 // 10 percentage cut
 // 1000000000000000 baseprice (test 0.001 MATIC)
@@ -106,7 +106,7 @@ contract SuperWorldToken is ERC721Enumerable, Ownable, ReentrancyGuard {
     // @param takes in a uint representing the percentageCut
     // @return no return, mutator
     function setPercentageCut(uint256 _percentageCut) public onlyOwner() {
-        require(_percentageCut > 0);
+        require(_percentageCut > 0 && _percentageCut < 100);
         percentageCut = _percentageCut;
     }
 
@@ -371,7 +371,6 @@ contract SuperWorldToken is ERC721Enumerable, Ownable, ReentrancyGuard {
     // @return none
     function _beforeTokenTransfer(address from, address to, uint256 tokenId, uint256 batchSize) internal override{
         super._beforeTokenTransfer(from, to, tokenId, batchSize = 1);
-        (string memory lat, string memory lon) = getGeoFromTokenId(bytes32(tokenId));
         isListeds[tokenId] = false;
         uint256 price = getPrice(tokenId);
         recordTransaction(tokenId, price);
