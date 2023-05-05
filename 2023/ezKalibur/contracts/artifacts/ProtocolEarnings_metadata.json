@@ -1,0 +1,373 @@
+{
+	"compiler": {
+		"version": "0.7.6+commit.7338295f"
+	},
+	"language": "Solidity",
+	"output": {
+		"abi": [
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "dividends",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "buyback",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "operating",
+						"type": "address"
+					}
+				],
+				"stateMutability": "nonpayable",
+				"type": "constructor"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": false,
+						"internalType": "contract IERC20",
+						"name": "token",
+						"type": "address"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "dividendsAmount",
+						"type": "uint256"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "buybackAndBurnAmount",
+						"type": "uint256"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "operatingAmount",
+						"type": "uint256"
+					}
+				],
+				"name": "Distribute",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "previousOwner",
+						"type": "address"
+					},
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "newOwner",
+						"type": "address"
+					}
+				],
+				"name": "OwnershipTransferred",
+				"type": "event"
+			},
+			{
+				"inputs": [],
+				"name": "buybackAndBurnShare",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "buybackAndBurnWallet",
+				"outputs": [
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "contract IERC20",
+						"name": "token",
+						"type": "address"
+					}
+				],
+				"name": "distributeShares",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "dividendsShare",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "dividendsWallet",
+				"outputs": [
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "operatingFundsWallet",
+				"outputs": [
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "owner",
+				"outputs": [
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "renounceOwnership",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "contract IERC20",
+						"name": "token",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "to",
+						"type": "address"
+					}
+				],
+				"name": "safeEmergencyWithdraw",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "sharePrecision",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "newOwner",
+						"type": "address"
+					}
+				],
+				"name": "transferOwnership",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "newWallet",
+						"type": "address"
+					}
+				],
+				"name": "updateBuybackAndBurnWallet",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "newWallet",
+						"type": "address"
+					}
+				],
+				"name": "updateDevelopmentFundsWallet",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "newWallet",
+						"type": "address"
+					}
+				],
+				"name": "updateDividendsWallet",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "dividendsShare_",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "buybackAndBurnShare_",
+						"type": "uint256"
+					}
+				],
+				"name": "updateShares",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			}
+		],
+		"devdoc": {
+			"kind": "dev",
+			"methods": {
+				"owner()": {
+					"details": "Returns the address of the current owner."
+				},
+				"renounceOwnership()": {
+					"details": "Leaves the contract without owner. It will not be possible to call `onlyOwner` functions. Can only be called by the current owner. NOTE: Renouncing ownership will leave the contract without an owner, thereby disabling any functionality that is only available to the owner."
+				},
+				"transferOwnership(address)": {
+					"details": "Transfers ownership of the contract to a new account (`newOwner`). Can only be called by the current owner."
+				}
+			},
+			"version": 1
+		},
+		"userdoc": {
+			"kind": "user",
+			"methods": {},
+			"version": 1
+		}
+	},
+	"settings": {
+		"compilationTarget": {
+			"contracts/ProtocolEarnings.sol": "ProtocolEarnings"
+		},
+		"evmVersion": "istanbul",
+		"libraries": {},
+		"metadata": {
+			"bytecodeHash": "ipfs"
+		},
+		"optimizer": {
+			"enabled": false,
+			"runs": 200
+		},
+		"remappings": []
+	},
+	"sources": {
+		"contracts/ProtocolEarnings.sol": {
+			"keccak256": "0x797def7bb1e6feb96293f5bb0a8c56a0512d95479a8e44a53f8647c1ea27cd93",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://29740cd87579a46d1b37f170caf4b70a207a3f9b92b9855d9956edac88bdf5fb",
+				"dweb:/ipfs/QmbF1GW2Vsx8toETqZeFbobjzraHCdjn3iHL4okGZBkzJE"
+			]
+		},
+		"contracts/access/Ownable.sol": {
+			"keccak256": "0x518a70e4fcf452baa3e82b63ac224256df18be67b211bfa96f412426e0b3bcaf",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://79ed162bbc8eb9dc4170672df0d8375dfb6035980bbda4890cf7c6393416cd81",
+				"dweb:/ipfs/QmYkVwViH7fQEF71YeP6swAV26p4s9ZycNX5akipmo3Gxs"
+			]
+		},
+		"contracts/interfaces/IERC20.sol": {
+			"keccak256": "0x61db17aebc5d812c7002d15c1da954065e56abe49d64b14c034abe5604d70eb3",
+			"urls": [
+				"bzz-raw://b006685e753f9120469f10b09c159f222d4cb8b507a6c1f0c14ed50c883ebe66",
+				"dweb:/ipfs/QmSyY7iTugbczPwfGK67etiyPULenYGzzRYbt8aabwwkUb"
+			]
+		},
+		"contracts/libraries/Address.sol": {
+			"keccak256": "0xf89f005a3d98f7768cdee2583707db0ac725cf567d455751af32ee68132f3db3",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://f963d438177764b5f43f637c02311c951c0f0025d12fe1ac7e62e295bf416c41",
+				"dweb:/ipfs/QmcfVb9JsWrYeTwFUJsKVHpKB7EaWBKydAH9S4sKg2pzcK"
+			]
+		},
+		"contracts/libraries/Context.sol": {
+			"keccak256": "0x8d3cb350f04ff49cfb10aef08d87f19dcbaecc8027b0bed12f3275cd12f38cf0",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://ded47ec7c96750f9bd04bbbc84f659992d4ba901cb7b532a52cd468272cf378f",
+				"dweb:/ipfs/QmfBrGtQP7rZEqEg6Wz6jh2N2Kukpj1z5v3CGWmAqrzm96"
+			]
+		},
+		"contracts/libraries/SafeERC20.sol": {
+			"keccak256": "0x03058d523c91e750b20293a3646f883b58c837e6015aea4e013447e2c3afb460",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://c8cb70431af35762dd5f0e503976bc1d271b5f0441dc29193d1a2ecd555816f2",
+				"dweb:/ipfs/Qmen6ceEL3axV46Ge8YZoqSNCDA2D3ufiHp7VwmUPtoZG2"
+			]
+		},
+		"contracts/math/SafeMath.sol": {
+			"keccak256": "0x36d9cd071bd9940d5d037102f5ba45465b7611bc399c13d520707570757a8a8e",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://96dde04088c2cd9ec4982b14c9e57c9a3aaf02ca0983207f5f2da98e9fd1ae54",
+				"dweb:/ipfs/QmVb2d6mwg6Y79kHYT3yxNuXyYQcyUq93YcNCom3A1RDfi"
+			]
+		}
+	},
+	"version": 1
+}
