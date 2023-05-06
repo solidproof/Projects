@@ -24,7 +24,7 @@ contract StakeDTL is Pausable, Ownable, ReentrancyGuard {
     Token dtlToken;
     Token rewardToken;
 
-    uint256[3] public lockPeriods = [3 * 60, 6 * 60, 8 * 60];
+    uint256[3] public lockPeriods = [600, 1200, 1800];
     uint256[3] public sharesPerToken = [20, 15, 10];
 
     uint256 public totalShares;
@@ -41,9 +41,7 @@ contract StakeDTL is Pausable, Ownable, ReentrancyGuard {
         uint256 amount;
         uint256 shares;
         uint8 lockPeriodIndex;
-        bool expired;
     }
-
 
    
     event Staked(address indexed from, uint256 amount, uint8 lockPeriodIndex);
@@ -78,56 +76,51 @@ contract StakeDTL is Pausable, Ownable, ReentrancyGuard {
     
 
 
-    function divCeil(uint256 a, uint256 b) internal pure returns (uint256) {
-        require(b > 0, "division by zero");
-        return a.mul(PRECISION).add(b.sub(1)).div(b); // Support precision
-    }
+function divCeil(uint256 a, uint256 b) internal pure returns (uint256) {
+    require(b > 0, "division by zero");
+    return a.mul(PRECISION).add(b.sub(1)).div(b); // Support precision
+}
 
 
 
   
-  function distributeRewards() internal {
-    uint256 activeShares = 0;
-    for (uint256 i = 0; i < stakerTree.length(); i++) {
-        address staker = stakerTree.addressAt(i);
-        for (uint256 j = 0; j < stakeInfos[staker].length; j++) {
-            if (stakeInfos[staker][j].endTS < lastRewardDistribution) {
-                stakeInfos[staker][j].expired = true;
-            }
-            if (!stakeInfos[staker][j].expired) {
-                activeShares = activeShares.add(stakeInfos[staker][j].shares);
-            }
-        }
-    }
-
-    if(activeShares <= 0 ) {
+ function distributeRewards() internal {
+    if (totalStakers == 0) {
         return;
     }
+
+    require(totalShares > 0, "No shares available");
 
     uint256 elapsedTime = block.timestamp.sub(lastRewardDistribution);
 
     if (elapsedTime > 0) {
+        // Calculate rewardsToDistribute based on the rewardPercentage of the total rewards
         uint256 rewardsForTwentyFourHours = totalRewards.mul(rewardPercentage).div(100);
-        uint256 rewardsToDistribute = divCeil(rewardsForTwentyFourHours.mul(elapsedTime), 86400).div(PRECISION);
+        uint256 rewardsToDistribute = divCeil(rewardsForTwentyFourHours.mul(elapsedTime), 86400).div(PRECISION); // Proportional to the elapsed time, rounded up and divided by PRECISION
 
         require(rewardToken.balanceOf(address(this)) >= rewardsToDistribute, "Insufficient reward token balance");
 
-        uint256 rewardsPerShare = divCeil(rewardsToDistribute, activeShares);
+        uint256 rewardsPerShare = divCeil(rewardsToDistribute, totalShares); // Round up to avoid decimals
 
         totalRewards = totalRewards.sub(rewardsToDistribute);
         lastRewardDistribution = block.timestamp;
 
-        for (uint256 i = 0; i < stakerTree.length(); i++) {
+        for (uint256 i = 0; i < totalStakers; i++) {
             address staker = stakerTree.addressAt(i);
-            uint256 stakerShares = 0;
+            uint256 stakerShares = userTotalShares[staker];
+
+            // Check if stake time is expired for any stake instances of the staker
+            bool stakeTimeExpired = false;
             for (uint256 j = 0; j < stakeInfos[staker].length; j++) {
-                if (!stakeInfos[staker][j].expired) {
-                    stakerShares = stakerShares.add(stakeInfos[staker][j].shares);
+                if (stakeInfos[staker][j].endTS < lastRewardDistribution) {
+                    stakeTimeExpired = true;
+                    break;
                 }
             }
 
-            if (stakerShares > 0) {
-                uint256 stakerReward = stakerShares.mul(rewardsPerShare).div(PRECISION);
+            // If stake time is not expired, distribute rewards
+            if (!stakeTimeExpired) {
+                uint256 stakerReward = stakerShares.mul(rewardsPerShare).div(PRECISION); // Divide by PRECISION to get the original scale
                 unclaimedRewards[staker] = unclaimedRewards[staker].add(stakerReward);
             }
         }
@@ -167,8 +160,7 @@ contract StakeDTL is Pausable, Ownable, ReentrancyGuard {
             endTS: block.timestamp + lockPeriods[lockPeriodIndex],
             amount: stakeAmount,
             shares: shares,
-            lockPeriodIndex: lockPeriodIndex,
-            expired: false
+            lockPeriodIndex: lockPeriodIndex
         }));
 
         stakerTree.insertData(_msgSender(), stakeAmount, shares);  // Update totalStakers if necessary
