@@ -4,6 +4,7 @@
 
 In an increasingly global economy, financial institutions are more vulnerable to illicit criminal activities. Know Your Customer (KYC) standards are designed to protect financial institutions against fraud, corruption, money laundering and terrorist financing.
 
+The contracts of Dracula Finance will be Published after launch
 
 ✅  Certificate of Compliance  
 ✅  Vulnerability Report & Code Recommendations  
