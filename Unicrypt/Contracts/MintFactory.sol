@@ -24,14 +24,14 @@ contract MintFactory is Ownable {
         uint256 Index;
     }
 
-    mapping(uint => TaxHelper) public taxHelpersData;
-    address[] public taxHelpers;
+    mapping(uint => TaxHelper) private taxHelpersData;
+    address[] private taxHelpers;
      
     mapping(address => address[]) private tokenOwners;
 
-    address public FacetHelper;
-    address public FeeHelper;
-    address public LosslessController;
+    address private FacetHelper;
+    address private FeeHelper;
+    address private LosslessController;
 
     event TokenRegistered(address tokenOwner, address tokenContract);
     event AllowTokenGenerator(address _address, bool _allow);

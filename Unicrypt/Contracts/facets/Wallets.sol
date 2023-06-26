@@ -15,8 +15,13 @@ import "../interfaces/ILPWallet.sol";
 
 import "../libraries/Ownable.sol";
 
-contract WalletsFacet is Storage, Ownable {
+contract WalletsFacet is Ownable {
+    Storage internal s;
 
+    event CreatedBuyBackWallet(address _wallet);
+    event CreatedLPWallet(address _wallet);
+    event UpdatedBuyBackWalletThreshold(uint256 _newThreshold);
+    event UpdatedLPWalletThreshold(uint256 _newThreshold);
 
     function createBuyBackWallet(address _factory, address _token, uint256 _newThreshold) external returns (address) {
         BuyBackWallet newBuyBackWallet = new BuyBackWallet(_factory, _token,_newThreshold);
@@ -31,12 +36,12 @@ contract WalletsFacet is Storage, Ownable {
     }
 
     function updateBuyBackWalletThreshold(uint256 _newThreshold) public onlyOwner {
-        IBuyBackWallet(buyBackWallet).updateThreshold(_newThreshold);
+        IBuyBackWallet(s.buyBackWallet).updateThreshold(_newThreshold);
         emit UpdatedBuyBackWalletThreshold(_newThreshold);
     }
 
     function updateLPWalletThreshold(uint256 _newThreshold) public onlyOwner {
-        ILPWallet(lpWallet).updateThreshold(_newThreshold);
+        ILPWallet(s.lpWallet).updateThreshold(_newThreshold);
         emit UpdatedLPWalletThreshold(_newThreshold);
     }
 

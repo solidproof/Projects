@@ -107,10 +107,11 @@ contract TaxHelperUniswapV2 is Ownable{
 
     function lpTokenHasReserves(address _lpToken) public view returns (bool) {
         (uint112 reserve0, uint112 reserve1,) = IUniswapV2Pair(_lpToken).getReserves();
-        if(reserve0 > 0 && reserve1 > 0) {
-            return true;
-        }
-        return false;
+        return reserve0 > 0 && reserve1 > 0;
+    }
+
+    function sync(address _lpToken) public {
+        IUniswapV2Pair(_lpToken).sync();
     }
 
     receive() payable external {

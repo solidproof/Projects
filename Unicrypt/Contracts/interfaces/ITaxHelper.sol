@@ -20,4 +20,6 @@ interface ITaxHelper {
     function lpTokenHasReserves(address _lpToken) external view returns (bool);
 
     function createLPToken() external returns (address lpToken);
+
+    function sync(address _lpToken) external;
 }

@@ -18,7 +18,7 @@ contract LPWallet is Ownable{
 
     ITaxToken public token;
     IMintFactory public factory;
-    uint256 public threshold;
+    uint256 private threshold;
 
     event UpdatedThreshold(uint256 _newThreshold);
     event ETHtoTaxHelper(uint256 amount);
@@ -33,10 +33,7 @@ contract LPWallet is Ownable{
     }
     
     function checkLPTrigger() public view returns (bool) {
-        if(address(this).balance > threshold) {
-            return true;
-        }
-        return false;
+        return address(this).balance > threshold;
     }
 
     function getBalance() public view returns (uint256) {

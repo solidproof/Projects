@@ -7,183 +7,124 @@ pragma solidity 0.8.17;
 
 import "../interfaces/ILosslessController.sol";
 
-contract Storage {
+struct Storage {
 
-    uint256 public CONTRACT_VERSION = 1;
+    uint256 CONTRACT_VERSION;
 
-    struct TaxSettings {
-        bool transactionTax;
-        bool buyBackTax;
-        bool holderTax;
-        bool lpTax;
-        bool canBlacklist;
-        bool canMint;
-        bool canPause;
-        bool maxBalanceAfterBuy;
-    }
 
-    struct Fee {
-        uint256 buy;
-        uint256 sell;
-    }
+    TaxSettings taxSettings;
+    TaxSettings isLocked;
+    Fees fees;
+    CustomTax[] customTaxes;
 
-    struct Fees {
-        Fee transactionTax;
-        uint256 buyBackTax;
-        uint256 holderTax;
-        uint256 lpTax;
-    }
+    address transactionTaxWallet;
+    uint256 customTaxLength;
+    uint256 MaxTax;
+    uint8 MaxCustom;
 
-    struct CustomTax {
-        string name;
-        Fee fee;
-        address wallet;
-    }
+    uint256 DENOMINATOR;
 
-    TaxSettings public taxSettings;
-    TaxSettings public isLocked;
-    Fees public fees;
-    CustomTax[] public customTaxes;
+    mapping (address => uint256) _rOwned;
+    mapping (address => uint256) _tOwned;
+    mapping (address => mapping (address => uint256)) _allowances;
 
-    address public transactionTaxWallet;
-    uint256 public customTaxLength = 0;
-    uint256 public MaxTax = 3000;
-    uint8 public MaxCustom = 10;
-
-    uint256 internal DENOMINATOR;
-
-    mapping (address => uint256) internal _rOwned;
-    mapping (address => uint256) internal _tOwned;
-    mapping (address => mapping (address => uint256)) public _allowances;
-
-    mapping (address => bool) public _isExcluded;
-    address[] internal _excluded;
+    mapping (address => bool) _isExcluded;
+    address[] _excluded;
    
-    uint256 constant MAX = ~uint256(0);
-    uint256 internal _tTotal;
-    uint256 internal _rTotal;
-    uint256 public _tFeeTotal;
+    uint256 MAX;
+    uint256 _tTotal;
+    uint256 _rTotal;
+    uint256 _tFeeTotal;
 
-    mapping (address => bool) public lpTokens;
+    mapping (address => bool) lpTokens;
     
-    string internal _name;
-    string internal _symbol;
-    uint8 internal _decimals;
-    address internal _creator;
+    string _name;
+    string _symbol;
+    uint8 _decimals;
+    address _creator;
 
-    address public factory;
+    address factory;
 
-    address public buyBackWallet;
-    address public lpWallet;
+    address buyBackWallet;
+    address lpWallet;
 
-    bool internal isPaused = false;
+    bool isPaused;
 
-    bool internal isTaxed = false;
+    bool isTaxed;
     
-    mapping(address => bool) internal blacklist;
-    mapping(address => bool) internal swapWhitelist;
-    mapping(address => bool) internal maxBalanceWhitelist;
+    mapping(address => bool) blacklist;
+    mapping(address => bool) swapWhitelist;
+    mapping(address => bool) maxBalanceWhitelist;
+    mapping(address => bool) taxWhitelist;
 
-    address public pairAddress;
+    address pairAddress;
 
-    uint256 public taxHelperIndex;
+    uint256 taxHelperIndex;
 
     // AntiBot Variables
 
-    bool public marketInit = false;
-    uint256 public marketInitBlockTime;
+    bool marketInit;
+    uint256 marketInitBlockTime;
 
-    struct AntiBotSettings {
-        uint256 startBlock;
-        uint256 endDate;
-        uint256 increment;
-        uint256 initialMaxHold;
-        bool isActive;
-    }
+    AntiBotSettings antiBotSettings;
 
-    AntiBotSettings public antiBotSettings;
+    mapping (address => uint256) antiBotBalanceTracker;
 
-    mapping (address => uint256) internal antiBotBalanceTracker;
-
-    uint256 public maxBalanceAfterBuy;
-
-    struct SwapWhitelistingSettings {
-        uint256 endDate;
-        bool isActive;
-    }
+    uint256 maxBalanceAfterBuy;
     
-    SwapWhitelistingSettings public swapWhitelistingSettings;
+    SwapWhitelistingSettings swapWhitelistingSettings;
 
     // Lossless data and events
 
-    address public recoveryAdmin;
-    address internal recoveryAdminCandidate;
-    bytes32 internal recoveryAdminKeyHash;
-    address public admin;
-    uint256 public timelockPeriod;
-    uint256 public losslessTurnOffTimestamp;
-    bool public isLosslessTurnOffProposed;
-    bool public isLosslessOn;
-    ILosslessController public lossless;
+    address recoveryAdmin;
+    address recoveryAdminCandidate;
+    bytes32 recoveryAdminKeyHash;
+    address admin;
+    uint256 timelockPeriod;
+    uint256 losslessTurnOffTimestamp;
+    bool isLosslessTurnOffProposed;
+    bool isLosslessOn;
+}
 
-    event AdminChanged(address indexed previousAdmin, address indexed newAdmin);
-    event RecoveryAdminChangeProposed(address indexed candidate);
-    event RecoveryAdminChanged(address indexed previousAdmin, address indexed newAdmin);
-    event LosslessTurnOffProposed(uint256 turnOffDate);
-    event LosslessTurnedOff();
-    event LosslessTurnedOn();
+struct TaxSettings {
+    bool transactionTax;
+    bool buyBackTax;
+    bool holderTax;
+    bool lpTax;
+    bool canBlacklist;
+    bool canMint;
+    bool canPause;
+    bool maxBalanceAfterBuy;
+}
 
-    // Events 
+struct Fee {
+    uint256 buy;
+    uint256 sell;
+}
 
-    event TokenCreated(string name, string symbol, uint8 decimals, uint256 totalSupply, uint256 reflectionTotalSupply);
+struct Fees {
+    Fee transactionTax;
+    uint256 buyBackTax;
+    uint256 holderTax;
+    uint256 lpTax;
+}
 
-    event AddedBlacklistAddress(address _address);
-    event RemovedBlacklistAddress(address _address);
-    event ToggledPause(bool _isPaused);
-    event AddedLPToken(address _newLPToken);
-    event RemovedLPToken(address _lpToken);
-    event CreatedBuyBackWallet(address _wallet);
-    event CreatedLPWallet(address _wallet);
-    event UpdatedBuyBackWalletThreshold(uint256 _newThreshold);
-    event UpdatedLPWalletThreshold(uint256 _newThreshold);
+struct CustomTax {
+    string name;
+    Fee fee;
+    address wallet;
+    bool withdrawAsGas;
+}
 
-    event MarketInit(uint256 timestamp, uint256 blockNumber);
+struct AntiBotSettings {
+    uint256 startBlock;
+    uint256 endDate;
+    uint256 increment;
+    uint256 initialMaxHold;
+    bool isActive;
+}
 
-    event BuyBackTaxInitiated(address _sender, uint256 _fee, address _wallet, bool _isBuy);
-    event TransactionTaxInitiated(address _sender, uint256 _fee, address _wallet, bool _isBuy);
-    event LPTaxInitiated(address _sender, uint256 _fee, address _wallet, bool _isBuy);
-    event CustomTaxInitiated(address _sender, uint256 _fee, address _wallet, bool _isBuy);
-
-    event UpdatedCustomTaxes(CustomTax[] _customTaxes);
-    event UpdatedTaxFees(Fees _updatedFees);
-    event UpdatedTransactionTaxAddress(address _newAddress);
-    event UpdatedLockedSettings(TaxSettings _updatedLocks);
-    event UpdatedSettings(TaxSettings _updatedSettings);
-    event UpdatedPairAddress(address _newPairAddress);
-    event UpdatedTaxHelperIndex(uint _newIndex);
-
-    event Reflect(uint256 tAmount, uint256 rAmount, uint256 rTotal_, uint256 teeTotal_);
-    event ExcludedAccount(address account);
-    event IncludedAccount(address account);
-
-    event Transfer(address indexed from, address indexed to, uint256 value);
-    event Approval(address indexed owner, address indexed spender, uint256 value);
-
-    // AntiBot
-
-    event UpdatedAntiBotSettings(AntiBotSettings _antiBotSettings);
-    event UpdatedSwapWhitelistingSettings(SwapWhitelistingSettings _swapWhitelistingSettings);
-
-    event UpdatedAntiBotIncrement(uint256 _updatedIncrement);
-    event UpdatedAntiBotEndDate(uint256 _updatedEndDate);
-    event UpdatedAntiBotInitialMaxHold(uint256 _updatedInitialMaxHold);
-    event UpdatedAntiBotActiveStatus(bool _isActive);
-    event UpdatedSwapWhitelistingEndDate(uint256 _updatedEndDate);
-    event UpdatedSwapWhitelistingActiveStatus(bool _isActive);
-    event UpdatedMaxBalanceAfterBuy(uint256 _newMaxBalance);
-
-    event AddedMaxBalanceWhitelistAddress(address _address);   
-    event RemovedMaxBalanceWhitelistAddress(address _address);        
-    event AddedSwapWhitelistAddress(address _address);
-    event RemovedSwapWhitelistAddress(address _address);
+struct SwapWhitelistingSettings {
+    uint256 endDate;
+    bool isActive;
 }

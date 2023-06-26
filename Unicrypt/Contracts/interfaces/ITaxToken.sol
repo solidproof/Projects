@@ -15,5 +15,7 @@ interface ITaxToken is IERC20 {
 
     function owner() external view returns (address);
 
+    function pairAddress() external view returns (address);
+    function decimals() external view returns (uint8);
 
 }
