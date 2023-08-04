@@ -1,3 +1,7 @@
+/**
+ *Submitted for verification at Etherscan.io on 2023-06-30
+*/
+
 // ░██████╗░█████╗░███████╗██╗░░░██╗  ██████╗░██╗░░░██╗
 // ██╔════╝██╔══██╗██╔════╝██║░░░██║  ██╔══██╗╚██╗░██╔╝
 // ╚█████╗░███████║█████╗░░██║░░░██║  ██████╦╝░╚████╔╝░
@@ -350,7 +354,7 @@ contract AIDOGE2 is Context, IERC20, Ownable {
     mapping (address => bool) private _isExcluded;
     address[] private _excluded;
 
-    string private _name     = "AI Doge 2.0";
+    string private _name     = "AIDOGE 2.0";
     string private _symbol   = "AIDOGE2.0";
     uint8  private _decimals = 9;
    
