@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Business Source License 1.1
 
-pragma solidity =0.8.21;
+pragma solidity =0.8.19;
 
 import "./ERC20Upgradeable.sol";
 import "./SafeERC20Upgradeable.sol";
@@ -150,7 +150,7 @@ contract UsdfiVaultV1 is ERC20Upgradeable, OwnableUpgradeable, ReentrancyGuardUp
      * from the strategy and pay up the token holder. A proportional number of IOU
      * tokens are burned in the process.
      */
-    function withdraw(uint256 _shares) public {
+    function withdraw(uint256 _shares) public nonReentrant {
         require(checkIfContract(msg.sender) == false || whitelist[msg.sender] == true, "SafeERC20: call from contract");
         require (_shares > 0, "SafeERC20: 0 amount");
 
@@ -226,7 +226,7 @@ contract UsdfiVaultV1 is ERC20Upgradeable, OwnableUpgradeable, ReentrancyGuardUp
 
         address ref = IReferrals(referralContract).getSponsor(_user);
 
-            stable().safeTransfer(msg.sender, reward - refReward);
+            stable().safeTransfer(_user, reward - refReward);
             emit RewardPaid(_user, reward - refReward);
 
             uint256 i = 0;
