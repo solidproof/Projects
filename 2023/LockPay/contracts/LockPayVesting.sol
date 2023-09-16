@@ -49,6 +49,9 @@ contract LockPayVesting is Ownable, ReentrancyGuard, Adminable {
         address beneficiaryAddress;
         address stakingAddress;
         string stakingSignature;
+        bool canAddDuration;
+        bool canUpdateBeneficiary;
+        bool canUpdateStaking;
         bool isStakable;
         bool isRelockable;
         bool initialized;
@@ -59,7 +62,9 @@ contract LockPayVesting is Ownable, ReentrancyGuard, Adminable {
         uint256 maxRefundPercentage;
         bool withoutPenalty;
     }
-    
+
+    uint256 constant MIN_WITHDRAW_PERCENTAGE = 6000; // 60% (with 2 decimals)
+    uint256 constant MAX_PLANS_DURATION = 2 * 365 * 24 * 60 * 60; // 2 years
 
     RefundParams public refundSettings;
     Settings public settings;
@@ -96,6 +101,8 @@ contract LockPayVesting is Ownable, ReentrancyGuard, Adminable {
     event onTransferLock(uint256 lockIDFrom, uint256 lockIDto, address oldOwner, address newOwner);
     event onSplitLock(uint256 fromLockID, uint256 toLockID, uint256 amountInTokens);
     event onMigrate(uint256 lockID, uint256 amountInTokens);
+    event onUpdateBeneficiary(address indexed oldBeneficiary, address indexed newBeneficiary);
+    event onUpdateStaking(address indexed oldStakingAddress, address indexed newStakingAddress);
 
     // @todo: add events
     constructor (address _generator, address _admin, address _token) Adminable(_admin) {
@@ -110,10 +117,14 @@ contract LockPayVesting is Ownable, ReentrancyGuard, Adminable {
         address _beneficiaryAddress,
         address _stakingAddress,
         string memory _stakingSignature,
+        bool _canAddDuration,
+        bool _canUpdateBeneficiary,
+        bool _canUpdateStaking,
         bool _isStakable,
         bool _isRelockable
     ) external onlyGenerator {
         require(!settings.initialized, "LockPay: ALREADY_INITALIZED");
+        require(_maxWithdrawPercentage >= MIN_WITHDRAW_PERCENTAGE, "LockPay: INVALID_MAX_WITHDRAW");
         if(_isStakable) {
             require(_stakingAddress != address(0), "LockPay: INVALID_STAKING");
         }
@@ -124,6 +135,9 @@ contract LockPayVesting is Ownable, ReentrancyGuard, Adminable {
         settings.beneficiaryAddress = _beneficiaryAddress;
         settings.stakingAddress = _stakingAddress;
         settings.stakingSignature = _stakingSignature;
+        settings.canAddDuration = _canAddDuration;
+        settings.canUpdateBeneficiary = _canUpdateBeneficiary;
+        settings.canUpdateStaking = _canUpdateStaking;
         settings.isStakable = _isStakable;
         settings.isRelockable = _isRelockable;
         settings.initialized = true;
@@ -133,9 +147,26 @@ contract LockPayVesting is Ownable, ReentrancyGuard, Adminable {
         uint256 _duration,
         uint256 _amount,
         bool _isPercentage
+    ) external onlyOwner {
+        require(settings.canAddDuration, "LockPay: NOT_ALLOWED");
+        require(settings.initialized, "LockPay: NOT_INITALIZED");
+        require(_duration > 3600, "LockPay: INVALID_DURATION"); // An hour
+        require(_duration <= MAX_PLANS_DURATION, 'LockPay: TIMESTAMP_INVALID');
+        require(_duration < 1e10, 'LockPay: TIMESTAMP_INVALID'); // prevents errors when timestamp entered in milliseconds
+        require(_amount > 1000, "LockPay: INVALID_DURATION_AMOUNT");
+        durations.push(
+            PlansParams(_duration, _amount, _isPercentage)
+        );
+    }
+
+    function createDurations(
+        uint256 _duration,
+        uint256 _amount,
+        bool _isPercentage
     ) external onlyGenerator {
         require(settings.initialized, "LockPay: NOT_INITALIZED");
         require(_duration > 3600, "LockPay: INVALID_DURATION"); // An hour
+        require(_duration <= MAX_PLANS_DURATION, 'LockPay: TIMESTAMP_INVALID');
         require(_duration < 1e10, 'LockPay: TIMESTAMP_INVALID'); // prevents errors when timestamp entered in milliseconds
         require(_amount > 1000, "LockPay: INVALID_DURATION_AMOUNT");
         durations.push(
@@ -147,24 +178,36 @@ contract LockPayVesting is Ownable, ReentrancyGuard, Adminable {
         string memory _name,
         uint256 _earlyWithdrawPenalty,
         uint256 _maxWithdrawPercentage,
-        address _beneficiaryAddress,
-        address _stakingAddress,
         bool _isStakable,
         bool _isRelockable
     ) external onlyOwnerOrAdmin {
-        require(_maxWithdrawPercentage > 0, "LockPay: INVALID_WITHDRAW");
-        require(_earlyWithdrawPenalty <= 5000, "LockPay: INVALID_WITHDRAW");
-        if(_isStakable) {
-            require(_stakingAddress != address(0), "LockPay: INVALID_STAKING");
-        }
+        require(_maxWithdrawPercentage >= MIN_WITHDRAW_PERCENTAGE, "LockPay: INVALID_MAX_WITHDRAW");
+        require(_earlyWithdrawPenalty <= 3000, "LockPay: INVALID_PENALTY");
 
         settings.name = _name;
         settings.earlyWithdrawPenalty = _earlyWithdrawPenalty;
         settings.maxWithdrawPercentage = _maxWithdrawPercentage;
-        settings.beneficiaryAddress = _beneficiaryAddress;
-        settings.stakingAddress = _stakingAddress;
         settings.isStakable = _isStakable;
         settings.isRelockable = _isRelockable;
+    }
+
+    function updateBeneficiaryAddress(address _beneficiaryAddress) external onlyOwner {
+        require(settings.canUpdateBeneficiary, "LockPay: NOT_ALLOWED");
+        require(_beneficiaryAddress != address(0), "LockPay: INVALID_ADDRESS");
+        require(_beneficiaryAddress != settings.beneficiaryAddress, "LockPay: SELF");
+
+        emit onUpdateBeneficiary(settings.beneficiaryAddress, _beneficiaryAddress);
+        settings.beneficiaryAddress = _beneficiaryAddress;
+    }
+
+    function updateStakingAddress(address _stakingAddress) external onlyOwner {
+        require(settings.canUpdateStaking, "LockPay: NOT_ALLOWED");
+        require(settings.isStakable, "LockPay: NOT_STAKABLE");
+        require(_stakingAddress != address(0), "LockPay: INVALID_ADDRESS");
+        require(_stakingAddress != settings.stakingAddress, "LockPay: SELF");
+
+        emit onUpdateStaking(settings.stakingAddress, _stakingAddress);
+        settings.stakingAddress = _stakingAddress;
     }
 
     function updateFees(
@@ -172,11 +215,11 @@ contract LockPayVesting is Ownable, ReentrancyGuard, Adminable {
         uint256 _relockFee,
         uint256 _referralFee
     ) external onlyOwner {
-        require(_lockFee <= 5000, "LockPay: INVALID_FEE");
-        require(_relockFee <= 5000, "LockPay: INVALID_FEE");
-        require(_referralFee <= 5000, "LockPay: INVALID_FEE");
+        require(_lockFee <= 3000, "LockPay: INVALID_FEE");
+        require(_relockFee <= 3000, "LockPay: INVALID_FEE");
+        require(_referralFee <= 3000, "LockPay: INVALID_FEE");
 
-        ILockPaySettings(generator.settings()).updateLockerFees(_lockFee, _relockFee, _referralFee);        
+        ILockPaySettings(generator.settings()).updateLockerFees(_lockFee, _relockFee, _referralFee);
     }
 
     function togglePaused(bool _paused) external onlyOwnerOrAdmin {
@@ -193,7 +236,7 @@ contract LockPayVesting is Ownable, ReentrancyGuard, Adminable {
             _refundWallet,
             _maxRefundPercentage,
             _withoutPenalty
-        );        
+        );
     }
 
     function updateRefundSettings(
@@ -206,7 +249,7 @@ contract LockPayVesting is Ownable, ReentrancyGuard, Adminable {
             _refundWallet,
             _maxRefundPercentage,
             _withoutPenalty
-        );        
+        );
     }
 
     function addReferral(
@@ -462,15 +505,15 @@ contract LockPayVesting is Ownable, ReentrancyGuard, Adminable {
                 userLock.sharesWithdrawn += feeAdminInShares;
                 shares -= feeAdminInShares;
             }
-            
+
             if(referrer != address(0)) {
                 uint256 feeReferralInShares = FullMath.mulDiv(remainingShares, _referralFee, 10000);
 
                 balance = IERC20(token).balanceOf(address(this));
                 uint256 feeReferralInTokens = FullMath.mulDiv(feeReferralInShares, balance, shares == 0 ? 1 : shares);
-                
+
                 TransferHelper.safeTransfer(token, referrer, feeReferralInTokens);
-                
+
                 userLock.sharesWithdrawn += feeReferralInTokens;
                 shares -= feeReferralInTokens;
             }
@@ -478,7 +521,7 @@ contract LockPayVesting is Ownable, ReentrancyGuard, Adminable {
             userLock.sharesWithdrawn += feeInShares;
             shares -= feeInShares;
         }
-        
+
         userLock.endEmission = block.timestamp + duration.duration;
         emit onRelock(_lockID, userLock.endEmission);
     }
