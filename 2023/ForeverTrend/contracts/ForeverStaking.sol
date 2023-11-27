@@ -56,7 +56,7 @@ contract ForeverStaking is Ownable {
 
     bool public stakingEnabled = false;
 
-    uint256 public minimumStakeAmount = 100000 * 1e18;
+    uint256 public minimumStakeAmount = 1000 * 1e18;
 
     address public weth;
     IERC20 public immutable trendContract;
@@ -132,8 +132,7 @@ contract ForeverStaking is Ownable {
 
     function setMinimimStakeAmount(uint256 _newMinimumStakeAmount) external onlyOwner {
         require(_newMinimumStakeAmount != minimumStakeAmount, "The new amount is the same as the current amount");
-        require(_newMinimumStakeAmount <= (100000000 * 1e18 / 100) * trendContractMaxWallet,
-            "The new amount bigger then the TREND Max Wallet amount");
+        require(_newMinimumStakeAmount <= 100000000, "The new amount is bigger then the TREND total supply");
 
         minimumStakeAmount = _newMinimumStakeAmount;
 
