@@ -1,0 +1,60 @@
+{
+  "name": "@ridotto-io/global-rng",
+  "version": "1.0.0",
+  "description": "🎲 Ridotto's global RNG smart contract",
+  "license": "Ridotto Core License",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com/@ridotto-io"
+  },
+  "homepage": "https://ridotto.io",
+  "files": [
+    "/contracts/**/*.sol"
+  ],
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "test:coverage": "hardhat coverage",
+    "deploy:hardhat": "hardhat run ./scripts/deploy.js"
+  },
+  "keywords": [
+    "ridotto",
+    "smart contract",
+    "gambling",
+    "lottery",
+    "protocol",
+    "global rng",
+    "chainlink"
+  ],
+  "devDependencies": {
+    "@nomiclabs/hardhat-ethers": "^2.0.5",
+    "@nomiclabs/hardhat-etherscan": "^3.0.3",
+    "@nomiclabs/hardhat-waffle": "^2.0.3",
+    "@openzeppelin/contracts": "^4.5.0",
+    "@openzeppelin/contracts-upgradeable": "^4.5.2",
+    "@openzeppelin/hardhat-defender": "^1.6.0",
+    "@openzeppelin/hardhat-upgrades": "^1.16.1",
+    "chai": "^4.3.6",
+    "ethereum-waffle": "^3.4.0",
+    "ethers": "^5.5.4",
+    "hardhat": "^2.7.0",
+    "hardhat-gas-reporter": "^1.0.8",
+    "prettier": "^2.7.1",
+    "prettier-plugin-solidity": "^1.0.0-dev.21",
+    "solidity-coverage": "^0.8.2"
+  },
+  "dependencies": {
+    "@chainlink/contracts": "^0.5.1"
+  },
+  "main": ".solcover.js",
+  "directories": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ridotto-io/global-rng.git"
+  },
+  "author": "",
+  "bugs": {
+    "url": "https://github.com/ridotto-io/global-rng/issues"
+  }
+}

@@ -1,0 +1,73 @@
+enum Status {
+  Pending
+  Open
+  Close
+  Claimable
+}
+
+"""
+Ridotto Lottery
+"""
+type Lottery @entity {
+  "ID"
+  id: ID!
+
+  totalUsers: BigInt!
+  totalTickets: BigInt!
+
+  status: Status!
+
+  finalNumber: Int
+  winningTickets: Int
+  claimedTickets: BigInt
+
+  startTime: Int!
+  endTime: Int!
+
+  ticketPrice: BigDecimal!
+  firstTicket: BigInt!
+  lastTicket: BigInt
+  totalAccumalated: BigInt
+  RewardDistribution: [BigInt!]
+  BracketWinnerCount: [BigInt!]
+
+  "Block number"
+  block: BigInt!
+  "Block timestamp"
+  timestamp: Int!
+}
+
+type User @entity {
+  "ID"
+  id: ID!
+
+  totalRounds: BigInt!
+
+  totalTickets: BigInt!
+  rounds: [Round!]! @derivedFrom(field: "user")
+
+  totalLotteryToken: BigDecimal!
+
+  "Block number"
+  block: BigInt!
+  "Block timestamp"
+  timestamp: Int!
+}
+
+type Round @entity {
+  "ID"
+  id: ID!
+
+  lottery: Lottery!
+  user: User!
+
+  claimed: Boolean
+  totalTickets: BigInt!
+  TicketNumbers: [BigInt!]
+  TicketIds: [Int!]
+
+  "Block number"
+  block: BigInt!
+  "Block timestamp"
+  timestamp: Int!
+}

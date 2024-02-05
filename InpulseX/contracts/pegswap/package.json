@@ -1,0 +1,34 @@
+{
+  "name": "pegswap",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "NODE_NO_WARNINGS=1 hardhat test",
+    "coverage": "NODE_NO_WARNINGS=1 hardhat coverage",
+    "compile": "NODE_NO_WARNINGS=1 hardhat compile",
+    "size": "npm run clean && NODE_NO_WARNINGS=1 hardhat size-contracts",
+    "scan:myth": "myth analyze contracts/Swap.sol --execution-timeout 90",
+    "prescan:myth": "npm run compile",
+    "scan:slither": "NODE_NO_WARNINGS=1 slither . --filter-paths \"node_modules.*|Dummy.sol\"",
+    "prescan:slither": "npm run clean",
+    "clean": "rm -rf artifacts cache",
+    "scan": "npm run scan:myth; npm run scan:slither",
+    "flat": "poa-solidity-flattener $PWD/contracts/Swap.sol"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^2.0.1",
+    "@nomiclabs/hardhat-waffle": "^2.0.3",
+    "@openzeppelin/contracts": "^4.8.2",
+    "@poanet/solidity-flattener": "^3.0.8",
+    "hardhat": "^2.12.6",
+    "hardhat-contract-sizer": "^2.8.0",
+    "solidity-coverage": "^0.8.2"
+  },
+  "dependencies": {
+    "hardhat-abi-exporter": "^2.10.1"
+  }
+}

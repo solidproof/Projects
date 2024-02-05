@@ -1,0 +1,1 @@
+The KYC for Trendo ID has been revoked on 2023/03/07 due to inactivity (Project not launched yet; relaunch).
