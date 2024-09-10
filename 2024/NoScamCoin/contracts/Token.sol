@@ -1,5 +1,5 @@
 /**
- *Submitted for verification at BscScan.com on 2024-07-22
+ *Submitted for verification at BscScan.com on 2024-09-06
 */
 
 pragma solidity ^0.8.2;
@@ -8,8 +8,8 @@ contract Token {
     mapping(address => uint) public balances;
     mapping(address => mapping(address => uint)) public allowance;
     uint public totalSupply = 1000000000 * 10 ** 18;
-    string public name = "No Scam Coin";
-    string public symbol = "N$C";
+    string public name = "No $cam Coin";
+    string public symbol = "NSC";
     uint public decimals = 18;
     
     event Transfer(address indexed from, address indexed to, uint value);
